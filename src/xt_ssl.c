@@ -176,7 +176,6 @@ static bool ssl_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	match = (strcmp(info->ssl_host, parsed_host) == 0);
 
 #ifdef XT_SSL_DEBUG
-	printk("[xt_ssl] get_ssl_hostname returned: %d\n", result);
 	printk("[xt_ssl] Parsed domain: %s\n", parsed_host);
 	printk("[xt_ssl] Domain matches: %s, invert: %s\n", match ? "true" : "false", invert ? "true" : "false");
 #endif
