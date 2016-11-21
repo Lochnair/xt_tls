@@ -8,6 +8,9 @@ VERSION := $(shell git rev-parse HEAD 2>/dev/null)
 default:
 	    $(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
 
+debug:
+	    $(MAKE) -C $(KDIR) SUBDIRS=$(PWD) CFLAGS_MODULE="-DXT_SSL_DEBUG" modules
+
 install:
 	    install -v -m 644 xt_ssl.ko $(IDIR)
 	    depmod "$(KERNEL_VERSION)"

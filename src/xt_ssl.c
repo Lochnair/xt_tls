@@ -42,18 +42,18 @@ static int get_ssl_hostname(struct iphdr *ip_header, struct tcphdr *tcp_header, 
 			u_int offset, base_offset = 43, extension_offset = 2;
 			u_int16_t session_id_len, cipher_len, compression_len, extensions_len;
 
-			/*for (i = 0; i < data_len; i++) {
-				printk("[xt_ssl] data[%d]: 0x%02x / %d\n", i, data[i], data[i]);
-			}*/
-
 			if (base_offset + 2 > data_len) {
+#ifdef XT_SSL_DEBUG
 				printk("[xt_ssl] Data length is to small (%d)\n", (int)data_len);
+#endif
 				return EPROTO;
 			}
 
 			session_id_len = data[base_offset];
-			printk("[xt_ssl] Session ID length: %d\n", session_id_len);
 
+#ifdef XT_SSL_DEBUG
+			printk("[xt_ssl] Session ID length: %d\n", session_id_len);
+#endif
 			if ((session_id_len + base_offset + 2) > ssl_header_len) {
 				printk("[xt_ssl] SSL header length is smaller than session_id_len + base_offset +2 (%d > %d)\n", (session_id_len + base_offset + 2), ssl_header_len);
 				return EPROTO;
@@ -61,45 +61,51 @@ static int get_ssl_hostname(struct iphdr *ip_header, struct tcphdr *tcp_header, 
 
 			memcpy(&cipher_len, &data[base_offset + session_id_len + 1], 2);
 			cipher_len = ntohs(cipher_len);
-			printk("[xt_ssl] cipher len: %d\n", cipher_len);
 			offset = base_offset + session_id_len + cipher_len + 2;
+#ifdef XT_SSL_DEBUG
+			printk("[xt_ssl] Cipher len: %d\n", cipher_len);
 			printk("[xt_ssl] Offset (1): %d\n", offset);
-
+#endif
 			if (offset > ssl_header_len) {
+#ifdef XT_SSL_DEBUG
 				printk("[xt_ssl] SSL header length is smaller than offset (%d > %d)\n", offset, ssl_header_len);
+#endif
 				return EPROTO;
 			}
 
 			compression_len = data[offset + 1];
-			printk("[xt_ssl] Compression length: %d\n", compression_len);
 			offset += compression_len + 2;
+#ifdef XT_SSL_DEBUG
+			printk("[xt_ssl] Compression length: %d\n", compression_len);
 			printk("[xt_ssl] Offset (2): %d\n", offset);
-
+#endif
 			if (offset > ssl_header_len) {
+#ifdef XT_SSL_DEBUG
 				printk("[xt_ssl] SSL header length is smaller than offset w/compression (%d > %d)\n", offset, ssl_header_len);
+#endif
 				return EPROTO;
 			}
 
 			memcpy(&extensions_len, &data[offset], 2);
 			extensions_len = ntohs(extensions_len);
+#ifdef XT_SSL_DEBUG
 			printk("[xt_ssl] Extensions length: %d\n", extensions_len);
+#endif
 
 			if ((extensions_len + offset) > ssl_header_len) {
+#ifdef XT_SSL_DEBUG
 				printk("[xt_ssl] SSL header length is smaller than offset w/extensions (%d > %d)\n", (extensions_len + offset), ssl_header_len);
+#endif
 				return EPROTO;
 			}
-
-			printk("[xt_ssl] Looping through extensions.\n");
 
 			while (extension_offset < extensions_len)
 			{
 				u_int16_t extension_id, extension_len;
 
-				printk("[xt_ssl] memcpy extension_id @ %d\n", offset + extension_offset);
 				memcpy(&extension_id, &data[offset + extension_offset], 2);
 				extension_offset += 2;
 
-				printk("[xt_ssl] memcpy extension_len @ %d\n", offset + extension_offset);
 				memcpy(&extension_len, &data[offset + extension_offset], 2);
 				extension_offset += 2;
 
@@ -110,18 +116,13 @@ static int get_ssl_hostname(struct iphdr *ip_header, struct tcphdr *tcp_header, 
 
 					// We don't need the server name list length, so skip that
 					extension_offset += 2;
-					printk("[xt_ssl] Name type location: %d\n", offset + extension_offset);
 					memcpy(&name_type, &data[offset + extension_offset], 1);
 					extension_offset += 1;
-					printk("[xt_ssl] Name type: %d\n", name_type);
 
-					printk("[xt_ssl] Name length location: %d\n", offset + extension_offset);
 					memcpy(&name_length, &data[offset + extension_offset], 2);
 					name_length = ntohs(name_length);
 					extension_offset += 2;
-					printk("[xt_ssl] Name length: %d\n", name_length);
 
-					printk("[xt_ssl] Name location: %d\n", offset + extension_offset);
 					memcpy(dest, &data[offset + extension_offset], name_length);
 
 					return 0;
@@ -164,9 +165,11 @@ static bool ssl_mt(const struct sk_buff *skb, struct xt_action_param *par)
 
 	match = (strcmp(info->ssl_host, parsed_host) == 0);
 
+#ifdef XT_SSL_DEBUG
 	printk("[xt_ssl] get_ssl_hostname returned: %d\n", result);
 	printk("[xt_ssl] Parsed domain: %s\n", parsed_host);
 	printk("[xt_ssl] Domain matches: %s\n", match ? "true" : "false");
+#endif
 
 	kfree(parsed_host);
 
