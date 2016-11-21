@@ -111,6 +111,11 @@ static int get_ssl_hostname(struct iphdr *ip_header, struct tcphdr *tcp_header, 
 
 				extension_id = ntohs(extension_id), extension_len = ntohs(extension_len);
 
+#ifdef XT_SSL_DEBUG
+				printk("[xt_ssl] Extension ID: %d\n", extension_id);
+				printk("[xt_ssl] Extension length: %d\n", extension_len);
+#endif
+
 				if (extension_id == 0) {
 					u_int16_t name_length, name_type;
 
@@ -123,6 +128,10 @@ static int get_ssl_hostname(struct iphdr *ip_header, struct tcphdr *tcp_header, 
 					name_length = ntohs(name_length);
 					extension_offset += 2;
 
+#ifdef XT_SSL_DEBUG
+					printk("[xt_ssl] Name type: %d\n", name_type);
+					printk("[xt_ssl] Name length: %d\n", name_length);
+#endif
 					memcpy(dest, &data[offset + extension_offset], name_length);
 
 					return 0;
@@ -169,7 +178,7 @@ static bool ssl_mt(const struct sk_buff *skb, struct xt_action_param *par)
 #ifdef XT_SSL_DEBUG
 	printk("[xt_ssl] get_ssl_hostname returned: %d\n", result);
 	printk("[xt_ssl] Parsed domain: %s\n", parsed_host);
-	printk("[xt_ssl] Domain matches: %s\n", match ? "true" : "false");
+	printk("[xt_ssl] Domain matches: %s, invert: %s\n", match ? "true" : "false", invert ? "true" : "false");
 #endif
 	if (invert)
 		match = !match;
