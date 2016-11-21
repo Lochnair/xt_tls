@@ -44,7 +44,7 @@ static void ssl_parse(struct xt_option_call *cb)
 				info->invert |= XT_SSL_OP_HOST;
 			break;
 		case O_SSL_PORT:
-			if (info->ssl_port == 0)
+			if (cb->arg == 0)
 				info->ssl_port = 443;
 
 	}
