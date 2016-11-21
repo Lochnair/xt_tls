@@ -131,7 +131,7 @@ static int get_ssl_hostname(const struct sk_buff *skb, char **dest)
 
 					// We don't need the server name list length, so skip that
 					extension_offset += 2;
-					memcpy(&name_type, &data[offset + extension_offset], 1);
+					name_type = data[offset + extension_offset];
 					extension_offset += 1;
 
 					memcpy(&name_length, &data[offset + extension_offset], 2);
