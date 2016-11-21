@@ -35,7 +35,6 @@ static void ssl_parse(struct xt_option_call *cb)
 		case O_SSL_HOST:
 			if (cb->invert)
 				info->invert |= XT_SSL_OP_HOST;
-			strcpy(info->ssl_host, cb->arg);
 			break;
 	}
 }
