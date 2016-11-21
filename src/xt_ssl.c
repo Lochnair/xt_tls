@@ -18,8 +18,9 @@
  * field tells us what domain the client
  * wants to connect to.
  */
-static int get_ssl_hostname(struct iphdr *ip_header, const struct sk_buff *skb, char *dest)
+static int get_ssl_hostname(const struct sk_buff *skb, char *dest)
 {
+	struct iphdr *ip_header = (struct iphdr *)skb_network_header(skb);
 	struct tcphdr *tcp_header = (struct tcphdr *)skb_transport_header(skb);
 	char *data = (char *)((unsigned char *)tcp_header + (tcp_header->doff * 4));
 	char *tail = skb_tail_pointer(skb);
@@ -153,13 +154,6 @@ static bool ssl_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	int result;
 	bool invert = (info->invert & XT_SSL_OP_HOST);
 	bool match;
-
-	// Get destination port
-	struct iphdr *ip_header = (struct iphdr *)skb_network_header(skb);
-
-	if (ip_header->protocol != IPPROTO_TCP) {
-		return false;
-	}
 
 	if ((result = get_ssl_hostname(ip_header, skb, parsed_host)) != 0)
 		return false;
