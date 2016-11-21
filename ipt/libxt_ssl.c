@@ -13,7 +13,7 @@ enum {
 static void ssl_help(void)
 {
 	printf(
-"ssl match options:\n[!] --ssl-host hostname\n--ssl-port port\n"
+"ssl match options:\n[!] --ssl-host hostname\n--ssl-port port (default: 443)\n"
 	);
 }
 
@@ -43,6 +43,10 @@ static void ssl_parse(struct xt_option_call *cb)
 			if (cb->invert)
 				info->invert |= XT_SSL_OP_HOST;
 			break;
+		case O_SSL_PORT:
+			if (info->ssl_port == 0)
+				info->ssl_port = 443;
+
 	}
 }
 
