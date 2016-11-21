@@ -21,6 +21,11 @@
 static int get_ssl_hostname(const struct sk_buff *skb, char *dest)
 {
 	struct iphdr *ip_header = (struct iphdr *)skb_network_header(skb);
+
+	if (ip_header->protocol != IPPROTO_TCP) {
+		return EPROTO;
+	}
+
 	struct tcphdr *tcp_header = (struct tcphdr *)skb_transport_header(skb);
 	char *data = (char *)((unsigned char *)tcp_header + (tcp_header->doff * 4));
 	char *tail = skb_tail_pointer(skb);
