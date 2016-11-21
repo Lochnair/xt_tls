@@ -160,7 +160,7 @@ static bool ssl_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	bool invert = (info->invert & XT_SSL_OP_HOST);
 	bool match;
 
-	if ((result = get_ssl_hostname(ip_header, skb, parsed_host)) != 0)
+	if ((result = get_ssl_hostname(skb, parsed_host)) != 0)
 		return false;
 
 	match = (strcmp(info->ssl_host, parsed_host) == 0);
