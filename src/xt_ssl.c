@@ -158,7 +158,7 @@ static int get_ssl_hostname(const struct sk_buff *skb, char *dest)
 
 static bool ssl_mt(const struct sk_buff *skb, struct xt_action_param *par)
 {
-	char *parsed_host = "";
+	char *parsed_host;
 	const struct xt_ssl_info *info = par->matchinfo;
 	int result;
 	bool invert = (info->invert & XT_SSL_OP_HOST);
