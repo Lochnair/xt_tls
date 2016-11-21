@@ -142,7 +142,7 @@ static int get_ssl_hostname(const struct sk_buff *skb, char *dest)
 					printk("[xt_ssl] Name type: %d\n", name_type);
 					printk("[xt_ssl] Name length: %d\n", name_length);
 #endif
-					memcpy(dest, &data[offset + extension_offset], name_length);
+					strncpy(dest, &data[offset + extension_offset], name_length);
 
 					return 0;
 				}
