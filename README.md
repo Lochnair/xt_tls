@@ -23,7 +23,7 @@ sudo make install
 You can block traffic to Facebook using the following command.
 
 ```bash
-sudo iptables -A OUTPUT -m ssl --ssl-host "www.facebook.com" -j DROP
+sudo iptables -A OUTPUT -p tcp --dport 443 -m ssl --ssl-host "www.facebook.com" -j DROP
 ```
 
 ##Bugs
