@@ -141,6 +141,7 @@ static bool ssl_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	char *parsed_host = kmalloc(255, GFP_KERNEL);
 	const struct xt_ssl_info *info = par->matchinfo;
 	int result;
+	bool invert = (info->invert & XT_SSL_OP_HOST);
 	bool match;
 
 	// Get destination port
@@ -170,7 +171,9 @@ static bool ssl_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	printk("[xt_ssl] Parsed domain: %s\n", parsed_host);
 	printk("[xt_ssl] Domain matches: %s\n", match ? "true" : "false");
 #endif
-
+	if (invert)
+		match = !match;
+	
 	kfree(parsed_host);
 
 	return match;
