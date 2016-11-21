@@ -18,8 +18,9 @@
  * field tells us what domain the client
  * wants to connect to.
  */
-static int get_ssl_hostname(struct iphdr *ip_header, struct tcphdr *tcp_header, const struct sk_buff *skb, char *dest)
+static int get_ssl_hostname(struct iphdr *ip_header, const struct sk_buff *skb, char *dest)
 {
+	struct tcphdr *tcp_header = (struct tcphdr *)skb_transport_header(skb);
 	char *data = (char *)((unsigned char *)tcp_header + (tcp_header->doff * 4));
 	char *tail = skb_tail_pointer(skb);
 	size_t data_len = (uintptr_t)tail - (uintptr_t)data;
@@ -155,23 +156,12 @@ static bool ssl_mt(const struct sk_buff *skb, struct xt_action_param *par)
 
 	// Get destination port
 	struct iphdr *ip_header = (struct iphdr *)skb_network_header(skb);
-	struct tcphdr *tcp_header;
-
-	__u16 dst_port = 0, src_port = 0;
 
 	if (ip_header->protocol != IPPROTO_TCP) {
 		return false;
 	}
-	tcp_header = (struct tcphdr *)skb_transport_header(skb);
-	dst_port = (__u16)ntohs(tcp_header->dest);
-	src_port = (__u16)ntohs(tcp_header->source);
 
-	// For performance reasons only run SSL heuristics if destination or source port is 443
-	if (dst_port != info->ssl_port && src_port != info->ssl_port) {
-		return false;
-	}
-
-	if ((result = get_ssl_hostname(ip_header, tcp_header, skb, parsed_host)) != 0)
+	if ((result = get_ssl_hostname(ip_header, skb, parsed_host)) != 0)
 		return false;
 
 	match = (strcmp(info->ssl_host, parsed_host) == 0);
@@ -182,7 +172,7 @@ static bool ssl_mt(const struct sk_buff *skb, struct xt_action_param *par)
 #endif
 	if (invert)
 		match = !match;
-	
+
 	kfree(parsed_host);
 
 	return match;

@@ -13,7 +13,7 @@ enum {
 static void ssl_help(void)
 {
 	printf(
-"ssl match options:\n[!] --ssl-host hostname\n--ssl-port port (default: 443)\n"
+"ssl match options:\n[!] --ssl-host hostname\n"
 	);
 }
 
@@ -23,12 +23,6 @@ static const struct xt_option_entry ssl_opts[] = {
 		.id = O_SSL_HOST,
 		.type = XTTYPE_STRING,
 		.flags = XTOPT_INVERT | XTOPT_PUT, XTOPT_POINTER(struct xt_ssl_info, ssl_host),
-	},
-	{
-		.name = "ssl-port",
-		.id = O_SSL_PORT,
-		.type = XTTYPE_UINT16,
-		.flags = XTOPT_PUT, XTOPT_POINTER(struct xt_ssl_info, ssl_port),
 	},
 	XTOPT_TABLEEND,
 };
@@ -43,10 +37,6 @@ static void ssl_parse(struct xt_option_call *cb)
 			if (cb->invert)
 				info->invert |= XT_SSL_OP_HOST;
 			break;
-		case O_SSL_PORT:
-			if (cb->arg == 0)
-				info->ssl_port = 443;
-
 	}
 }
 
@@ -63,7 +53,6 @@ static void ssl_print(const void *ip, const struct xt_entry_match *match, int nu
 	printf(" SSL match");
 	printf("%s --ssl-host %s",
 				 (info->invert & XT_SSL_OP_HOST) ? " !":"", info->ssl_host);
-	printf("--ssl-port %d", info->ssl_port);
 }
 
 static void ssl_save(const void *ip, const struct xt_entry_match *match)
@@ -72,7 +61,6 @@ static void ssl_save(const void *ip, const struct xt_entry_match *match)
 
 	printf(" %s --ssl-host %s",
 				 (info->invert & XT_SSL_OP_HOST) ? " !":"", info->ssl_host);
-	printf(" --ssl-port %d", info->ssl_port);
 }
 
 static struct xtables_match ssl_match = {

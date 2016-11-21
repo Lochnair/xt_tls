@@ -7,7 +7,6 @@
 struct xt_ssl_info {
 	__u8 invert;
 	char ssl_host[255];
-	__u16 ssl_port;
 };
 
 #endif /* _XT_SSL_TARGET_H */
