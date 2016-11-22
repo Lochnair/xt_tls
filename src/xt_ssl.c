@@ -27,15 +27,19 @@ static int get_ssl_hostname(const struct sk_buff *skb, char **dest)
 	u_int16_t ssl_header_len;
 	u_int8_t handshake_protocol;
 
+	// Bad things will happen if the protocol is not TCP
 	if (ip_header->protocol != IPPROTO_TCP) {
 		return EPROTO;
 	}
 
 	tcp_header = (struct tcphdr *)skb_transport_header(skb);
+	// I'm not completely sure how this works (courtesy of StackOverflow), but it works
 	data = (char *)((unsigned char *)tcp_header + (tcp_header->doff * 4));
 	tail = skb_tail_pointer(skb);
+	// Calculate packet data length
 	data_len = (uintptr_t)tail - (uintptr_t)data;
 
+	// If this isn't an SSL handshake, abort
 	if (data[0] != 0x16) {
 		return EPROTO;
 	}
@@ -43,6 +47,7 @@ static int get_ssl_hostname(const struct sk_buff *skb, char **dest)
 	ssl_header_len = (data[3] << 8) + data[4] + 5;
 	handshake_protocol = data[5];
 
+	// Even if we don't have all the data, try matching anyway
 	if (ssl_header_len > data_len)
 		ssl_header_len = data_len;
 
@@ -59,6 +64,7 @@ static int get_ssl_hostname(const struct sk_buff *skb, char **dest)
 				return EPROTO;
 			}
 
+			// Get the length of the session ID
 			session_id_len = data[base_offset];
 
 #ifdef XT_SSL_DEBUG
@@ -69,6 +75,7 @@ static int get_ssl_hostname(const struct sk_buff *skb, char **dest)
 				return EPROTO;
 			}
 
+			// Get the length of the ciphers
 			memcpy(&cipher_len, &data[base_offset + session_id_len + 1], 2);
 			cipher_len = ntohs(cipher_len);
 			offset = base_offset + session_id_len + cipher_len + 2;
@@ -83,6 +90,7 @@ static int get_ssl_hostname(const struct sk_buff *skb, char **dest)
 				return EPROTO;
 			}
 
+			// Get the length of the compression types
 			compression_len = data[offset + 1];
 			offset += compression_len + 2;
 #ifdef XT_SSL_DEBUG
@@ -96,6 +104,7 @@ static int get_ssl_hostname(const struct sk_buff *skb, char **dest)
 				return EPROTO;
 			}
 
+			// Get the length of all the extensions
 			memcpy(&extensions_len, &data[offset], 2);
 			extensions_len = ntohs(extensions_len);
 #ifdef XT_SSL_DEBUG
@@ -109,6 +118,7 @@ static int get_ssl_hostname(const struct sk_buff *skb, char **dest)
 				return EPROTO;
 			}
 
+			// Loop through all the extensions to find the SNI extension
 			while (extension_offset < extensions_len)
 			{
 				u_int16_t extension_id, extension_len;
@@ -131,6 +141,10 @@ static int get_ssl_hostname(const struct sk_buff *skb, char **dest)
 
 					// We don't need the server name list length, so skip that
 					extension_offset += 2;
+					// We don't really need name_type at the moment
+					// as there's only one type in the RFC-spec.
+					// However I'm leaving it in here for
+					// debugging purposes.
 					name_type = data[offset + extension_offset];
 					extension_offset += 1;
 
