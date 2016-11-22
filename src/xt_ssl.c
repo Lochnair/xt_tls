@@ -71,7 +71,9 @@ static int get_ssl_hostname(const struct sk_buff *skb, char **dest)
 			printk("[xt_ssl] Session ID length: %d\n", session_id_len);
 #endif
 			if ((session_id_len + base_offset + 2) > ssl_header_len) {
+#ifdef XT_SSL_DEBUG
 				printk("[xt_ssl] SSL header length is smaller than session_id_len + base_offset +2 (%d > %d)\n", (session_id_len + base_offset + 2), ssl_header_len);
+#endif
 				return EPROTO;
 			}
 
