@@ -158,8 +158,11 @@ static int get_ssl_hostname(const struct sk_buff *skb, char **dest)
 					printk("[xt_ssl] Name type: %d\n", name_type);
 					printk("[xt_ssl] Name length: %d\n", name_length);
 #endif
-					*dest = kmalloc(name_length, GFP_KERNEL);
+					// Allocate an extra byte for the null-terminator
+					*dest = kmalloc(name_length + 1, GFP_KERNEL);
 					strncpy(*dest, &data[offset + extension_offset], name_length);
+					// Make sure the string is always null-terminated.
+					(*dest)[name_length] = 0;
 
 					return 0;
 				}
