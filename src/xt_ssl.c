@@ -8,6 +8,7 @@
 #include <linux/tcp.h>
 #include <linux/inet.h>
 #include <asm/errno.h>
+#include <linux/glob.h>
 
 #include "xt_ssl.h"
 
@@ -186,7 +187,7 @@ static bool ssl_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	if ((result = get_ssl_hostname(skb, &parsed_host)) != 0)
 		return false;
 
-	match = (strcmp(info->ssl_host, parsed_host) == 0);
+	match = glob_match(info->ssl_host, parsed_host);
 
 #ifdef XT_SSL_DEBUG
 	printk("[xt_ssl] Parsed domain: %s\n", parsed_host);
