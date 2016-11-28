@@ -32,6 +32,12 @@ You can block traffic to Facebook using the following command.
 sudo iptables -A OUTPUT -p tcp --dport 443 -m ssl --ssl-host "www.facebook.com" -j DROP
 ```
 
+You can also match subdomains using wildcards like this.
+
+```bash
+sudo iptables -A OUTPUT -p tcp --dport 443 -m ssl --ssl-host "\*.googlevideo.com" -j DROP
+```
+
 ##Bugs
 If you encounter a bug please make sure to include the following things in your bug report:
 - The application used for sending the request
