@@ -3,6 +3,8 @@
 #include <linux/slab.h>
 #include <linux/skbuff.h>
 #include <linux/netfilter/x_tables.h>
+#include <linux/netfilter_ipv4/ip_tables.h>
+#include <linux/netfilter_ipv6/ip6_tables.h>
 #include <linux/string.h>
 #include <linux/ip.h>
 #include <linux/tcp.h>
@@ -21,17 +23,11 @@
  */
 static int get_ssl_hostname(const struct sk_buff *skb, char **dest)
 {
-	struct iphdr *ip_header = (struct iphdr *)skb_network_header(skb);
 	struct tcphdr *tcp_header;
 	char *data, *tail;
 	size_t data_len;
 	u_int16_t ssl_header_len;
 	u_int8_t handshake_protocol;
-
-	// Bad things will happen if the protocol is not TCP
-	if (ip_header->protocol != IPPROTO_TCP) {
-		return EPROTO;
-	}
 
 	tcp_header = (struct tcphdr *)skb_transport_header(skb);
 	// I'm not completely sure how this works (courtesy of StackOverflow), but it works
@@ -203,28 +199,56 @@ static bool ssl_mt(const struct sk_buff *skb, struct xt_action_param *par)
 
 static int ssl_mt_check (const struct xt_mtchk_param *par)
 {
-	//const struct xt_ssl_info *info = par->matchinfo;
+	__u16 proto;
+
+	if (par->family == NFPROTO_IPV4) {
+		proto = ((const struct ipt_ip *) par->entryinfo)->proto;
+	} else if (par->family == NFPROTO_IPV6) {
+		proto = ((const struct ip6t_ip6 *) par->entryinfo)->proto;
+	} else {
+		return -EINVAL;
+	}
+
+	if (proto != IPPROTO_TCP) {
+		pr_info("Can be used only in combination with "
+			"-p tcp\n");
+		return -EINVAL;
+	}
+
 	return 0;
 }
 
-static struct xt_match ssl_mt_reg __read_mostly = {
-	.name       = "ssl",
-	.revision   = 0,
-	.family     = NFPROTO_IPV4,
-	.checkentry = ssl_mt_check,
-	.match      = ssl_mt,
-	.matchsize  = sizeof(struct xt_ssl_info),
-	.me         = THIS_MODULE,
+static struct xt_match ssl_mt_regs[] __read_mostly = {
+	{
+		.name       = "ssl",
+		.revision   = 0,
+		.family     = NFPROTO_IPV4,
+		.checkentry = ssl_mt_check,
+		.match      = ssl_mt,
+		.matchsize  = sizeof(struct xt_ssl_info),
+		.me         = THIS_MODULE,
+	},
+#if IS_ENABLED(CONFIG_IP6_NF_IPTABLES)
+	{
+		.name       = "ssl",
+		.revision   = 0,
+		.family     = NFPROTO_IPV6,
+		.checkentry = ssl_mt_check,
+		.match      = ssl_mt,
+		.matchsize  = sizeof(struct xt_ssl_info),
+		.me         = THIS_MODULE,
+	},
+#endif
 };
 
 static int __init ssl_mt_init (void)
 {
-	return xt_register_match(&ssl_mt_reg);
+	return xt_register_matches(ssl_mt_regs, ARRAY_SIZE(ssl_mt_regs));
 }
 
 static void __exit ssl_mt_exit (void)
 {
-	xt_unregister_match(&ssl_mt_reg);
+	xt_unregister_matches(ssl_mt_regs, ARRAY_SIZE(ssl_mt_regs));
 }
 
 module_init(ssl_mt_init);
