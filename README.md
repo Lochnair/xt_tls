@@ -11,6 +11,12 @@ xt\_ssl is an extension for netfilter/IPtables that allows you to filter traffic
 
 ##Installation
 
+###Prerequisites
+- Kernel headers (`apt install linux-headers-$(uname -r)`)
+- IPtables devel (`apt install iptables-dev`)
+- Glob kernel module
+- Netfilter defrag modules: nf\_defrag\_ipv4 and nf\_defrag\_ipv6
+
 ```bash
 git clone https://github.com/Lochnair/xt_ssl.git
 cd xt_ssl
