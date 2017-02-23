@@ -1,9 +1,9 @@
-#xt_ssl
+#xt_tls
 
-xt\_ssl is an extension for netfilter/IPtables that allows you to filter traffic based on SSL hostnames.
+xt\_tls is an extension for netfilter/IPtables that allows you to filter traffic based on TLS hostnames.
 
 ##Features
-- Filter SSL traffic based on the SNI extension
+- Filter TLS traffic based on the SNI extension
 
 ##Todo
 - Add more advanced matching features (i.e. wildcard matching)
@@ -18,8 +18,8 @@ xt\_ssl is an extension for netfilter/IPtables that allows you to filter traffic
 - Netfilter defrag modules: nf\_defrag\_ipv4 and nf\_defrag\_ipv6
 
 ```bash
-git clone https://github.com/Lochnair/xt_ssl.git
-cd xt_ssl
+git clone https://github.com/Lochnair/xt_tls.git
+cd xt_tls
 make
 sudo make install
 ```
@@ -29,46 +29,45 @@ sudo make install
 You can block traffic to Facebook using the following command.
 
 ```bash
-sudo iptables -A OUTPUT -p tcp --dport 443 -m ssl --ssl-host "www.facebook.com" -j DROP
+sudo iptables -A OUTPUT -p tcp --dport 443 -m tls --tls-host "www.facebook.com" -j DROP
 ```
 
 You can also match subdomains using wildcards like this.
 
 ```bash
-sudo iptables -A OUTPUT -p tcp --dport 443 -m ssl --ssl-host "\*.googlevideo.com" -j DROP
+sudo iptables -A OUTPUT -p tcp --dport 443 -m tls --tls-host "\*.googlevideo.com" -j DROP
 ```
 
 ##Bugs
 If you encounter a bug please make sure to include the following things in your bug report:
 - The application used for sending the request
-- The domain your trying to allow/block
-- Debug output (see the debugging section below)
-- If possible, a TCPDump capture containing the SSL "Client/Server Hello's"
+- The domain your trying to allow/block - Debug output (see the debugging section below)
+- If possible, a TCPDump capture containing the TLS "Client/Server Hello's"
 
 ##Debugging
 
-Since xt\_ssl is not thoroughly tested, sometimes weird things happen. This might be caused by an application that sends packets xt\_ssl can't parse. For example cURL and wget (or the SSL libary they use) doesn't send a session ID in the "Client Hello", and xt\_ssl didn't understand that, so I had to change some things to make it work.
+Since xt\_tls is not thoroughly tested, sometimes weird things happen. This might be caused by an application that sends packets xt\_tls can't parse. For example cURL and wget (or the TLS libary they use) doesn't send a session ID in the "Client Hello", and xt\_tls didn't understand that, so I had to change some things to make it work.
 
-By default xt\_ssl doesn't print anything to the syslog, as there seems to be quite some overhead in doing that. However you can enable debug output by compiling xt\_ssl like below.
+By default xt\_tls doesn't print anything to the syslog, as there seems to be quite some overhead in doing that. However you can enable debug output by compiling xt\_tls like below.
 
 ```bash
 make debug
 ```
 
-If you've sent a SSL request, you can now use dmesg to see if everything works as expected.
+If you've sent a TLS request, you can now use dmesg to see if everything works as expected.
 ```bash
 dmesg
 
-[ 2013.959415] [xt_ssl] Session ID length: 32
-[ 2013.974006] [xt_ssl] Cipher len: 42
-[ 2013.974292] [xt_ssl] Offset (1): 119
-[ 2013.974583] [xt_ssl] Compression length: 1
-[ 2013.974915] [xt_ssl] Offset (2): 122
-[ 2013.975211] [xt_ssl] Extensions length: 38
-[ 2013.977016] [xt_ssl] Name type: 0
-[ 2013.977675] [xt_ssl] Name length: 10
-[ 2013.978664] [xt_ssl] Parsed domain: github.com
-[ 2013.979068] [xt_ssl] Domain matches: false, invert: false
+[ 2013.959415] [xt_tls] Session ID length: 32
+[ 2013.974006] [xt_tls] Cipher len: 42
+[ 2013.974292] [xt_tls] Offset (1): 119
+[ 2013.974583] [xt_tls] Compression length: 1
+[ 2013.974915] [xt_tls] Offset (2): 122
+[ 2013.975211] [xt_tls] Extensions length: 38
+[ 2013.977016] [xt_tls] Name type: 0
+[ 2013.977675] [xt_tls] Name length: 10
+[ 2013.978664] [xt_tls] Parsed domain: github.com
+[ 2013.979068] [xt_tls] Domain matches: false, invert: false
 ```
 
 ##Credits
