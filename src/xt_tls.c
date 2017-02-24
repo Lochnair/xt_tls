@@ -8,11 +8,74 @@
 #include <linux/string.h>
 #include <linux/ip.h>
 #include <linux/tcp.h>
+#include <linux/udp.h>
 #include <linux/inet.h>
 #include <asm/errno.h>
 #include <linux/glob.h>
 
 #include "xt_tls.h"
+
+/*
+ * Searches through skb->data and looks for a
+ * client or server handshake. A client
+ * handshake is preferred as the SNI
+ * field tells us what domain the client
+ * wants to connect to.
+ */
+static int get_quic_hostname(const struct sk_buff *skb, char **dest)
+{
+	// Base offset, skip to stream ID
+	int base_offset = 13, offset;
+	struct udphdr *udp_header;
+	char *data;
+
+	udp_header = (struct udphdr *)skb_transport_header(skb);
+	// The UDP header is a total of 8 bytes, so the data is at udp_header address + 8 bytes
+	data = (char *)udp_header + 8;
+
+	// Stream ID must be 1
+	if (data[base_offset] != 1)
+		return EPROTO;
+
+	offset = base_offset + 2; // Skip data length
+	// Only continue if this is a client hello
+	if (strncmp(&data[offset], "CHLO", 4) == 0)
+	{
+		u_int32_t prev_end_offset = 0;
+		int tag_number, tag_offset = 0;
+		int i;
+
+		offset += 4; // Size of tag
+		memcpy(&tag_number, &data[offset], 2);
+		ntohs(tag_number);
+
+		offset += 4; // Size of tag number + padding
+
+		for (i = 0; i < tag_number; i++)
+		{
+			u_int32_t tag_end_offset;
+			int match = strncmp("SNI", &data[offset + tag_offset], 4);
+
+			tag_offset += 4;
+			memcpy(&tag_end_offset, &data[offset + tag_offset], 4);
+			ntohs(tag_end_offset);
+			tag_offset += 4;
+
+			if (match == 0)
+			{
+				int name_length = tag_end_offset - prev_end_offset;
+
+				*dest = kmalloc(name_length + 1, GFP_KERNEL);
+				strncpy(*dest, &data[offset + tag_offset], name_length);
+				return 0;
+			} else {
+				prev_end_offset = tag_end_offset;
+			}
+		}
+	}
+
+	return EPROTO;
+}
 
 /*
  * Searches through skb->data and looks for a
@@ -180,9 +243,18 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	bool invert = (info->invert & XT_TLS_OP_HOST);
 	bool match;
 
-	if ((result = get_tls_hostname(skb, &parsed_host)) != 0)
+	if (par->match->proto == IPPROTO_TCP) {
+		if ((result = get_tls_hostname(skb, &parsed_host)) != 0)
+			return false;
+	} else if (par->match->proto == IPPROTO_UDP) {
+		if ((result = get_quic_hostname(skb, &parsed_host)) != 0)
+			return false;
+	} else {
+		// This shouldn't be possible.
 		return false;
+	}
 
+	
 	match = glob_match(info->tls_host, parsed_host);
 
 #ifdef XT_TLS_DEBUG
@@ -209,9 +281,9 @@ static int tls_mt_check (const struct xt_mtchk_param *par)
 		return -EINVAL;
 	}
 
-	if (proto != IPPROTO_TCP) {
+	if (proto != IPPROTO_TCP && proto != IPPROTO_UDP) {
 		pr_info("Can be used only in combination with "
-			"-p tcp\n");
+			"-p tcp or -p udp\n");
 		return -EINVAL;
 	}
 
