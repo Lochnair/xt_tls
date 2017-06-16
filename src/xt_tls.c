@@ -12,7 +12,20 @@
 #include <asm/errno.h>
 
 #include "compat.h"
+#include "hashmap.c"
 #include "xt_tls.h"
+
+typedef struct {
+	__u32 hash;
+	char *data;
+	__u16 data_len;
+	bool seen_chlo;
+	bool seen_shlo;
+} flow_data;
+
+HASHMAP_FUNCS_CREATE(flow, __u32, flow_data)
+
+struct hashmap flow_map;
 
 /*
  * Searches through skb->data and looks for a
@@ -26,7 +39,9 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 	struct tcphdr *tcp_header;
 	char *data, *tail;
 	size_t data_len;
-	u_int16_t tls_header_len;
+	__u32 hash = skb_get_hash_raw(skb);
+	flow_data *flow = flow_hashmap_get(&flow_map, &hash);
+	__u16 tls_header_len;
 	u_int8_t handshake_protocol;
 
 	tcp_header = (struct tcphdr *)skb_transport_header(skb);
@@ -36,6 +51,12 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 	// Calculate packet data length
 	data_len = (uintptr_t)tail - (uintptr_t)data;
 
+	if (flow != NULL)
+	{
+		data = krealloc(data, data_len + flow->data_len, GFP_KERNEL);
+		memcpy(data + data_len, flow->data, flow->data_len);
+	}
+
 	// If this isn't an TLS handshake, abort
 	if (data[0] != 0x16) {
 		return EPROTO;
@@ -44,9 +65,15 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 	tls_header_len = (data[3] << 8) + data[4] + 5;
 	handshake_protocol = data[5];
 
-	// Even if we don't have all the data, try matching anyway
+	/*
+	 * If we dont have the whole TLS handshake yet,
+	 * put the data into a struct for later use
+	 */
 	if (tls_header_len > data_len)
-		tls_header_len = data_len;
+	{
+		flow_data data_stor;
+		data_stor.data_len = data_len;
+	}
 
 	if (tls_header_len > 4) {
 		// Check only client hellos for now
@@ -243,11 +270,13 @@ static struct xt_match tls_mt_regs[] __read_mostly = {
 
 static int __init tls_mt_init (void)
 {
+	hashmap_init(&flow_map, hashmap_hash_u32, hashmap_compare_u32, 0);
 	return xt_register_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
 }
 
 static void __exit tls_mt_exit (void)
 {
+	hashmap_destroy(&flow_map);
 	xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
 }
 
