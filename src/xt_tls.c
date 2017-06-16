@@ -10,8 +10,8 @@
 #include <linux/tcp.h>
 #include <linux/inet.h>
 #include <asm/errno.h>
-#include <linux/glob.h>
 
+#include "compat.h"
 #include "xt_tls.h"
 
 /*
