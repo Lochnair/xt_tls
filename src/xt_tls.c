@@ -31,7 +31,7 @@ static Result parse_chlo(flow_data *flow, char **dest)
 
 	if (base_offset + 2 > flow->data_len) {
 #ifdef XT_TLS_DEBUG
-		printk("[xt_tls] Data length is too small (%d)\n", (int)data_len);
+		printk("[xt_tls] Data length is too small (%d)\n", (int)flow->data_len);
 #endif
 		return NOT_ENOUGH_DATA;
 	}
