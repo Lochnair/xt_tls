@@ -163,7 +163,8 @@ static Result parse_server_cert(flow_data *data, char **dest)
 static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 {
 	struct tcphdr *tcp_header = (struct tcphdr *)skb_transport_header(skb);
-	__u8 handshake_protocol;
+	__u8 handshake_protocol, *skb_payload = (__u8 *)tcp_header + (tcp_header->doff * 4);
+	__u16 skb_payload_len = skb_tail_pointer(skb) - skb_payload;
 	__u16 header_offset = 0, tls_header_len;
 	__u32 hash = skb_get_hash_raw(skb);
 	flow_data *flow = flow_hashmap_get(&flow_map, &hash);
@@ -175,21 +176,20 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 	 */
 	if (flow != NULL)
 	{
-		__u8 *skb_payload = (__u8 *)tcp_header + (tcp_header->doff * 4);
-		// Calculate packet payload length
-		__u16 skb_payload_len = skb_tail_pointer(skb) - skb_payload;
-		flow->data = krealloc(flow->data, skb_payload_len + flow->data_len, GFP_KERNEL);
-		memcpy(flow->data + flow->data_len, skb_payload, skb_payload_len);
 		#ifdef XT_TLS_DEBUG
 				printk("[xt_tls] flow found");
 		#endif
+		flow->data = krealloc(flow->data, skb_payload_len + flow->data_len, GFP_KERNEL);
+		memcpy(flow->data + flow->data_len, skb_payload, skb_payload_len);
+		flow->data_len += skb_payload_len;
 	} else {
 #ifdef XT_TLS_DEBUG
 		printk("[xt_tls] flow not found");
 #endif
 		flow = kmalloc(sizeof(flow_data), GFP_KERNEL);
-		flow->data = (__u8 *)tcp_header + (tcp_header->doff * 4);
-		flow->data_len = skb_tail_pointer(skb) - flow->data;
+		flow->data = kmalloc(skb_payload_len, GFP_KERNEL);
+		memcpy(flow->data, skb_payload, skb_payload_len);
+		flow->data_len = skb_payload_len;
 		flow->hash = hash;
 	}
 
