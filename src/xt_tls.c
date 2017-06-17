@@ -19,6 +19,16 @@ HASHMAP_FUNCS_CREATE(flow, __u32, flow_data)
 
 struct hashmap flow_map;
 
+static void debug_log(const char *fmt, ...)
+{
+#ifdef XT_TLS_DEBUG
+	va_list args;
+	va_start(args, fmt);
+	printk(fmt, args);
+	va_end(args);
+#endif
+}
+
 /*
  * Parse the client hello looking for
  * the SNI extension.
@@ -30,22 +40,16 @@ static Result parse_chlo(flow_data *flow, char **dest)
 	__u16 tls_header_len = (flow->data[3] << 8) + flow->data[4] + 5;
 
 	if (base_offset + 2 > flow->data_len) {
-#ifdef XT_TLS_DEBUG
-		printk("[xt_tls] Data length is too small (%d)\n", (int)flow->data_len);
-#endif
+		debug_log("[xt_tls] Data length is too small (%d)\n", (int)flow->data_len);
 		return NOT_ENOUGH_DATA;
 	}
 
 	// Get the length of the session ID
 	session_id_len = flow->data[base_offset];
+	debug_log("[xt_tls] Session ID length: %d\n", session_id_len);
 
-#ifdef XT_TLS_DEBUG
-	printk("[xt_tls] Session ID length: %d\n", session_id_len);
-#endif
 	if ((session_id_len + base_offset + 2) > tls_header_len) {
-#ifdef XT_TLS_DEBUG
-		printk("[xt_tls] TLS header length is smaller than session_id_len + base_offset +2 (%d > %d)\n", (session_id_len + base_offset + 2), tls_header_len);
-#endif
+		debug_log("[xt_tls] TLS header length is smaller than session_id_len + base_offset +2 (%d > %d)\n", (session_id_len + base_offset + 2), tls_header_len);
 		return PROTOCOL_ERROR;
 	}
 
@@ -53,42 +57,33 @@ static Result parse_chlo(flow_data *flow, char **dest)
 	memcpy(&cipher_len, &flow->data[base_offset + session_id_len + 1], 2);
 	cipher_len = ntohs(cipher_len);
 	offset = base_offset + session_id_len + cipher_len + 2;
-#ifdef XT_TLS_DEBUG
-	printk("[xt_tls] Cipher len: %d\n", cipher_len);
-	printk("[xt_tls] Offset (1): %d\n", offset);
-#endif
+
+	debug_log("[xt_tls] Cipher len: %d\n", cipher_len);
+	debug_log("[xt_tls] Offset (1): %d\n", offset);
+
 	if (offset > tls_header_len) {
-#ifdef XT_TLS_DEBUG
-		printk("[xt_tls] TLS header length is smaller than offset (%d > %d)\n", offset, tls_header_len);
-#endif
+		debug_log("[xt_tls] TLS header length is smaller than offset (%d > %d)\n", offset, tls_header_len);
 		return PROTOCOL_ERROR;
 	}
 
 	// Get the length of the compression types
 	compression_len = flow->data[offset + 1];
 	offset += compression_len + 2;
-#ifdef XT_TLS_DEBUG
-	printk("[xt_tls] Compression length: %d\n", compression_len);
-	printk("[xt_tls] Offset (2): %d\n", offset);
-#endif
+	debug_log("[xt_tls] Compression length: %d\n", compression_len);
+	debug_log("[xt_tls] Offset (2): %d\n", offset);
+
 	if (offset > tls_header_len) {
-#ifdef XT_TLS_DEBUG
-		printk("[xt_tls] TLS header length is smaller than offset w/compression (%d > %d)\n", offset, tls_header_len);
-#endif
+		debug_log("[xt_tls] TLS header length is smaller than offset w/compression (%d > %d)\n", offset, tls_header_len);
 		return PROTOCOL_ERROR;
 	}
 
 	// Get the length of all the extensions
 	memcpy(&extensions_len, &flow->data[offset], 2);
 	extensions_len = ntohs(extensions_len);
-#ifdef XT_TLS_DEBUG
-	printk("[xt_tls] Extensions length: %d\n", extensions_len);
-#endif
+	debug_log("[xt_tls] Extensions length: %d\n", extensions_len);
 
 	if ((extensions_len + offset) > tls_header_len) {
-#ifdef XT_TLS_DEBUG
-		printk("[xt_tls] TLS header length is smaller than offset w/extensions (%d > %d)\n", (extensions_len + offset), tls_header_len);
-#endif
+		debug_log("[xt_tls] TLS header length is smaller than offset w/extensions (%d > %d)\n", (extensions_len + offset), tls_header_len);
 		return PROTOCOL_ERROR;
 	}
 
@@ -105,10 +100,8 @@ static Result parse_chlo(flow_data *flow, char **dest)
 
 		extension_id = ntohs(extension_id), extension_len = ntohs(extension_len);
 
-#ifdef XT_TLS_DEBUG
-		printk("[xt_tls] Extension ID: %d\n", extension_id);
-		printk("[xt_tls] Extension length: %d\n", extension_len);
-#endif
+		debug_log("[xt_tls] Extension ID: %d\n", extension_id);
+		debug_log("[xt_tls] Extension length: %d\n", extension_len);
 
 		if (extension_id == 0) {
 			u_int16_t name_length, name_type;
@@ -126,10 +119,9 @@ static Result parse_chlo(flow_data *flow, char **dest)
 			name_length = ntohs(name_length);
 			extension_offset += 2;
 
-#ifdef XT_TLS_DEBUG
-			printk("[xt_tls] Name type: %d\n", name_type);
-			printk("[xt_tls] Name length: %d\n", name_length);
-#endif
+			debug_log("[xt_tls] Name type: %d\n", name_type);
+			debug_log("[xt_tls] Name length: %d\n", name_length);
+
 			// Allocate an extra byte for the null-terminator
 			*dest = kmalloc(name_length + 1, GFP_KERNEL);
 			strncpy(*dest, &flow->data[offset + extension_offset], name_length);
@@ -176,16 +168,14 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 	 */
 	if (flow != NULL)
 	{
-		#ifdef XT_TLS_DEBUG
-				printk("[xt_tls] flow found");
-		#endif
+		debug_log("[xt_tls] flow found");
+
 		flow->data = krealloc(flow->data, skb_payload_len + flow->data_len, GFP_KERNEL);
 		memcpy(flow->data + flow->data_len, skb_payload, skb_payload_len);
 		flow->data_len += skb_payload_len;
 	} else {
-#ifdef XT_TLS_DEBUG
-		printk("[xt_tls] flow not found");
-#endif
+		debug_log("[xt_tls] flow not found");
+
 		flow = kmalloc(sizeof(flow_data), GFP_KERNEL);
 		flow->data = kmalloc(skb_payload_len, GFP_KERNEL);
 		memcpy(flow->data, skb_payload, skb_payload_len);
@@ -199,9 +189,7 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 		tls_header_len = (flow->data[3] << 8) + flow->data[4] + 5;
 		handshake_protocol = flow->data[5];
 
-#ifdef XT_TLS_DEBUG
-		printk("[xt_tls] header_offset: %d", header_offset);
-#endif
+		debug_log("[xt_tls] header_offset: %d", header_offset);
 
 		/*
 		 * If we dont have the whole TLS handshake yet,
@@ -210,9 +198,8 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 		 */
 		if (tls_header_len > flow->data_len)
 		{
-#ifdef XT_TLS_DEBUG
-			printk("[xt_tls] we don't have the whole header yet. store for later.");
-#endif
+			debug_log("[xt_tls] we don't have the whole header yet. store for later.");
+
 			flow_hashmap_put(&flow_map, &flow->hash, flow);
 			return NOT_ENOUGH_DATA;
 		}
@@ -220,16 +207,12 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 		if (tls_header_len > 4) {
 			// Client Hello
 			if (handshake_protocol == 0x1) {
-#ifdef XT_TLS_DEBUG
-				printk("[xt_tls] found chlo");
-#endif
+				debug_log("[xt_tls] found chlo");
 				result = parse_chlo(flow, dest);
 			} else
 			// Server certificate
 			if (handshake_protocol == 0xb) {
-#ifdef XT_TLS_DEBUG
-				printk("[xt_tls] found server cert");
-#endif
+				debug_log("[xt_tls] found server cert");
 				result = parse_server_cert(flow, dest);
 			}
 		}
@@ -266,10 +249,9 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 
 	match = glob_match(info->tls_host, parsed_host);
 
-#ifdef XT_TLS_DEBUG
-	printk("[xt_tls] Parsed domain: %s\n", parsed_host);
-	printk("[xt_tls] Domain matches: %s, invert: %s\n", match ? "true" : "false", invert ? "true" : "false");
-#endif
+	debug_log("[xt_tls] Parsed domain: %s\n", parsed_host);
+	debug_log("[xt_tls] Domain matches: %s, invert: %s\n", match ? "true" : "false", invert ? "true" : "false");
+
 	if (invert)
 		match = !match;
 
