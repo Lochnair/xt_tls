@@ -175,14 +175,14 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 	 */
 	if (flow != NULL)
 	{
-#ifdef XT_TLS_DEBUG
-		printk("[xt_tls] flow found");
-#endif
 		__u8 *skb_payload = (__u8 *)tcp_header + (tcp_header->doff * 4);
 		// Calculate packet payload length
 		__u16 skb_payload_len = skb_tail_pointer(skb) - skb_payload;
 		flow->data = krealloc(flow->data, skb_payload_len + flow->data_len, GFP_KERNEL);
 		memcpy(flow->data + flow->data_len, skb_payload, skb_payload_len);
+		#ifdef XT_TLS_DEBUG
+				printk("[xt_tls] flow found");
+		#endif
 	} else {
 #ifdef XT_TLS_DEBUG
 		printk("[xt_tls] flow not found");
@@ -195,12 +195,13 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 
 	while (flow->data[header_offset] == 0x16)
 	{
-#ifdef XT_TLS_DEBUG
-		printk("[xt_tls] header_offset: %d", header_offset);
-#endif
 		Result result;
 		tls_header_len = (flow->data[3] << 8) + flow->data[4] + 5;
 		handshake_protocol = flow->data[5];
+
+#ifdef XT_TLS_DEBUG
+		printk("[xt_tls] header_offset: %d", header_offset);
+#endif
 
 		/*
 		 * If we dont have the whole TLS handshake yet,
