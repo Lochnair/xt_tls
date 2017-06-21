@@ -10,7 +10,7 @@ void flow_add(flow_data * flow)
 	list_add(&flow->list, &flow_list);
 }
 
-void flow_destroy()
+void flow_destroy(void)
 {
 	flow_data * flow;
 	struct list_head * pos;
