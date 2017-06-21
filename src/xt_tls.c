@@ -12,12 +12,8 @@
 #include <asm/errno.h>
 
 #include "compat.h"
-#include "hashmap.c"
+#include "flow.h"
 #include "xt_tls.h"
-
-HASHMAP_FUNCS_CREATE(flow, __u32, flow_data)
-
-struct hashmap flow_map;
 
 static void debug_log(const char *fmt, ...)
 {
@@ -159,7 +155,7 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 	__u16 skb_payload_len = skb_tail_pointer(skb) - skb_payload;
 	__u16 header_offset = 0, tls_header_len;
 	__u32 hash = skb_get_hash_raw(skb);
-	flow_data *flow = flow_hashmap_get(&flow_map, &hash);
+	flow_data *flow = flow_get(hash);
 
 	/*
 	 * If we have data for this flow, reallocate enough memory to combine the payloads,
@@ -200,7 +196,7 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 		{
 			debug_log("[xt_tls] we don't have the whole header yet. store for later.");
 
-			flow_hashmap_put(&flow_map, &flow->hash, flow);
+			flow_add(flow);
 			return NOT_ENOUGH_DATA;
 		}
 
@@ -219,7 +215,7 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 
 		if (result == NAME_FOUND)
 		{
-			flow_hashmap_remove(&flow_map, &hash);
+			flow_remove(flow->hash);
 			kfree(flow->data);
 			kfree(flow);
 			return result;
@@ -230,7 +226,7 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 		}
 	}
 
-	flow_hashmap_remove(&flow_map, &hash);
+	flow_remove(flow->hash);
 	kfree(flow->data);
 	kfree(flow);
 	return NAME_NOT_FOUND;
@@ -306,13 +302,12 @@ static struct xt_match tls_mt_regs[] __read_mostly = {
 
 static int __init tls_mt_init (void)
 {
-	hashmap_init(&flow_map, hashmap_hash_u32, hashmap_compare_u32, 0);
 	return xt_register_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
 }
 
 static void __exit tls_mt_exit (void)
 {
-	hashmap_destroy(&flow_map);
+	flow_destroy();
 	xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
 }
 

@@ -11,14 +11,6 @@ struct xt_tls_info {
 
 #endif /* _XT_TLS_TARGET_H */
 
-typedef struct {
-	__u32 hash;
-	__u8 *data;
-	__u16 data_len;
-	bool seen_chlo;
-	bool seen_shlo;
-} flow_data;
-
 typedef enum {
 	NAME_FOUND,
 	NAME_NOT_FOUND,
