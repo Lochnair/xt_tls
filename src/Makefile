@@ -1,4 +1,4 @@
-xt_tls-y := flow.o
+xt_tls-y := main.o flow.o
 obj-m := xt_tls.o
 KERNEL_VERSION := $(shell uname -r)
 IDIR := /lib/modules/$(KERNEL_VERSION)/kernel/net/netfilter/
@@ -18,4 +18,4 @@ install:
 	    [ "$(KERNEL_VERSION)" != `uname -r` ] || modprobe xt_tls
 
 clean:
-	    rm -rf Module.markers modules.order Module.symvers flow.o flow.mod.o xt_tls.ko xt_tls.mod.c xt_tls.mod.o xt_tls.o
+	    rm -rf Module.markers modules.order Module.symvers *.o *.mod.c *.mod.o *.ko .*.o.cmd .*.ko.cmd
