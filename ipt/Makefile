@@ -1,7 +1,6 @@
 CFLAGS = -I../src -fPIC
 
-all:
-	make libxt_tls.so
+all: libxt_tls.so
 lib%.so: lib%.o
 	$(CC) -shared -o $@ $^;
 lib%.o: %lib%.c
