@@ -44,3 +44,8 @@ void flow_remove(__u32 hash)
 	kfree(flow->data);
 	kfree(flow);
 }
+
+void flow_remove(flow_data * flow)
+{
+	flow_remove(flow->hash);
+}

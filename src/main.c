@@ -215,7 +215,7 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 
 		if (result == NAME_FOUND)
 		{
-			flow_remove(flow->hash);
+			flow_remove(flow);
 			kfree(flow->data);
 			kfree(flow);
 			return result;
@@ -226,7 +226,7 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 		}
 	}
 
-	flow_remove(flow->hash);
+	flow_remove(flow);
 	kfree(flow->data);
 	kfree(flow);
 	return NAME_NOT_FOUND;
