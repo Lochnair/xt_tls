@@ -15,7 +15,7 @@
 #include "flow.h"
 #include "xt_tls.h"
 
-static void debug_log(const char *fmt, ...)
+static noinline void debug_log(const char *fmt, ...)
 {
 #ifdef XT_TLS_DEBUG
 	va_list args;
@@ -29,7 +29,7 @@ static void debug_log(const char *fmt, ...)
  * Parse the client hello looking for
  * the SNI extension.
  */
-static Result parse_chlo(flow_data *flow, char **dest)
+static noinline Result parse_chlo(flow_data *flow, char **dest)
 {
 	u_int offset, base_offset = 43, extension_offset = 2;
 	u_int16_t session_id_len, cipher_len, compression_len, extensions_len;
@@ -136,7 +136,7 @@ static Result parse_chlo(flow_data *flow, char **dest)
 /*
  *
  */
-static Result parse_server_cert(flow_data *data, char **dest)
+static noinline Result parse_server_cert(flow_data *data, char **dest)
 {
 	return NAME_NOT_FOUND;
 }
@@ -148,7 +148,7 @@ static Result parse_server_cert(flow_data *data, char **dest)
  * field tells us what domain the client
  * wants to connect to.
  */
-static int get_tls_hostname(const struct sk_buff *skb, char **dest)
+static noinline int get_tls_hostname(const struct sk_buff *skb, char **dest)
 {
 	struct tcphdr *tcp_header = (struct tcphdr *)skb_transport_header(skb);
 	__u8 handshake_protocol, *skb_payload = (__u8 *)tcp_header + (tcp_header->doff * 4);
