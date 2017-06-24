@@ -153,7 +153,7 @@ static noinline int get_tls_hostname(const struct sk_buff *skb, char **dest)
 	struct tcphdr *tcp_header = (struct tcphdr *)skb_transport_header(skb);
 	u8 handshake_protocol;
 	u8 *skb_payload = (u8 *)tcp_header + (tcp_header->doff * 4);
-	u16 skb_payload_len = skb_tail_pointer(skb) - skb_payload;
+	u16 skb_payload_len = (u8 *)skb_tail_pointer(skb) - (u8 *)skb_payload;
 	u16 header_offset = 0, tls_header_len;
 	u32 hash = skb_get_hash_raw(skb);
 	flow_data *flow = flow_get(hash);
