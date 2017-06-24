@@ -23,7 +23,7 @@ void flow_destroy(void)
 	}
 }
 
-flow_data * flow_get(__u32 hash)
+flow_data * flow_get(u32 hash)
 {
 	flow_data * flow;
 	struct list_head * pos;
@@ -36,7 +36,7 @@ flow_data * flow_get(__u32 hash)
 	return NULL;
 }
 
-void flow_remove(__u32 hash)
+void flow_remove(u32 hash)
 {
 	flow_data * flow = flow_get(hash);
 	WARN_ON(flow == NULL);
