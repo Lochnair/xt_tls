@@ -31,9 +31,9 @@ static noinline void debug_log(const char *fmt, ...)
  */
 static noinline Result parse_chlo(flow_data *flow, char **dest)
 {
-	u_int offset, base_offset = 43, extension_offset = 2;
-	u_int16_t session_id_len, cipher_len, compression_len, extensions_len;
-	__u16 tls_header_len = (flow->data[3] << 8) + flow->data[4] + 5;
+	u16 offset, base_offset = 43, extension_offset = 2;
+	u16 session_id_len, cipher_len, compression_len, extensions_len;
+	u16 tls_header_len = (flow->data[3] << 8) + flow->data[4] + 5;
 
 	if (base_offset + 2 > flow->data_len) {
 		debug_log("[xt_tls] Data length is too small (%d)\n", (int)flow->data_len);
@@ -86,7 +86,7 @@ static noinline Result parse_chlo(flow_data *flow, char **dest)
 	// Loop through all the extensions to find the SNI extension
 	while (extension_offset < extensions_len)
 	{
-		u_int16_t extension_id, extension_len;
+		u16 extension_id, extension_len;
 
 		memcpy(&extension_id, &flow->data[offset + extension_offset], 2);
 		extension_offset += 2;
@@ -100,7 +100,7 @@ static noinline Result parse_chlo(flow_data *flow, char **dest)
 		debug_log("[xt_tls] Extension length: %d\n", extension_len);
 
 		if (extension_id == 0) {
-			u_int16_t name_length, name_type;
+			u16 name_length, name_type;
 
 			// We don't need the server name list length, so skip that
 			extension_offset += 2;
@@ -151,10 +151,11 @@ static noinline Result parse_server_cert(flow_data *data, char **dest)
 static noinline int get_tls_hostname(const struct sk_buff *skb, char **dest)
 {
 	struct tcphdr *tcp_header = (struct tcphdr *)skb_transport_header(skb);
-	__u8 handshake_protocol, *skb_payload = (__u8 *)tcp_header + (tcp_header->doff * 4);
-	__u16 skb_payload_len = skb_tail_pointer(skb) - skb_payload;
-	__u16 header_offset = 0, tls_header_len;
-	__u32 hash = skb_get_hash_raw(skb);
+	u8 handshake_protocol;
+	u8 *skb_payload = (u8 *)tcp_header + (tcp_header->doff * 4);
+	u16 skb_payload_len = skb_tail_pointer(skb) - skb_payload;
+	u16 header_offset = 0, tls_header_len;
+	u32 hash = skb_get_hash_raw(skb);
 	flow_data *flow = flow_get(hash);
 
 	/*
