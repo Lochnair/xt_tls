@@ -157,6 +157,7 @@ static noinline int get_tls_hostname(const struct sk_buff *skb, char **dest)
 	u16 header_offset = 0, tls_header_len;
 	u32 hash = skb_get_hash_raw(skb);
 	flow_data *flow = flow_get(hash);
+	bool new_flow;
 
 	/*
 	 * If we have data for this flow, reallocate enough memory to combine the payloads,
@@ -171,6 +172,7 @@ static noinline int get_tls_hostname(const struct sk_buff *skb, char **dest)
 		memcpy(flow->data + flow->data_len, skb_payload, skb_payload_len);
 		flow->data_len += skb_payload_len;
 		flow->tail = flow->data + flow->data_len;
+		new_flow = false;
 	} else {
 		debug_log("[xt_tls] flow not found");
 
@@ -180,6 +182,7 @@ static noinline int get_tls_hostname(const struct sk_buff *skb, char **dest)
 		flow->data_len = skb_payload_len;
 		flow->hash = hash;
 		flow->tail = flow->data + flow->data_len;
+		new_flow = true;
 	}
 
 	while (flow->data + header_offset <= flow->tail && *(flow->data + header_offset) == 0x16)
@@ -219,7 +222,8 @@ static noinline int get_tls_hostname(const struct sk_buff *skb, char **dest)
 
 		if (result == NAME_FOUND)
 		{
-			flow_remove(flow->hash);
+			if(!new_flow)
+				flow_remove(flow->hash);
 			kfree(flow->data);
 			kfree(flow);
 			return result;
@@ -230,7 +234,8 @@ static noinline int get_tls_hostname(const struct sk_buff *skb, char **dest)
 		}
 	}
 
-	flow_remove(flow->hash);
+	if(!new_flow)
+		flow_remove(flow->hash);
 	kfree(flow->data);
 	kfree(flow);
 	return NAME_NOT_FOUND;
