@@ -189,7 +189,7 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 
 		/*
 		 * If we dont have the whole TLS handshake yet,
-		 * put the flow_data struct into the hashmap,
+		 * put the flow_data struct into the linked list,
 		 * and continue when we have more data.
 		 */
 		if (tls_header_len > flow->data_len)
