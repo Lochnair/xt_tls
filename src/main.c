@@ -33,7 +33,10 @@ static noinline Result parse_chlo(flow_data *flow, char **dest)
 {
 	u16 offset, base_offset = 43, extension_offset = 2;
 	u16 session_id_len, cipher_len, compression_len, extensions_len;
-	u16 tls_header_len = (flow->data[3] << 8) + flow->data[4] + 5;
+	u16 tls_header_len;
+
+	memcpy(&tls_header_len, flow->data + 3, 2);
+	tls_header_len = ntohs(tls_header_len);
 
 	if (base_offset + 2 > flow->data_len) {
 		debug_log("[xt_tls] Data length is too small (%d)\n", (int)flow->data_len);
@@ -41,7 +44,7 @@ static noinline Result parse_chlo(flow_data *flow, char **dest)
 	}
 
 	// Get the length of the session ID
-	session_id_len = flow->data[base_offset];
+	session_id_len = *(flow->data + base_offset);
 	debug_log("[xt_tls] Session ID length: %d\n", session_id_len);
 
 	if ((session_id_len + base_offset + 2) > tls_header_len) {
@@ -50,7 +53,7 @@ static noinline Result parse_chlo(flow_data *flow, char **dest)
 	}
 
 	// Get the length of the ciphers
-	memcpy(&cipher_len, &flow->data[base_offset + session_id_len + 1], 2);
+	memcpy(&cipher_len, flow->data + base_offset + session_id_len + 1, 2);
 	cipher_len = ntohs(cipher_len);
 	offset = base_offset + session_id_len + cipher_len + 2;
 
@@ -63,7 +66,7 @@ static noinline Result parse_chlo(flow_data *flow, char **dest)
 	}
 
 	// Get the length of the compression types
-	compression_len = flow->data[offset + 1];
+	compression_len = *(flow->data + offset + 1);
 	offset += compression_len + 2;
 	debug_log("[xt_tls] Compression length: %d\n", compression_len);
 	debug_log("[xt_tls] Offset (2): %d\n", offset);
@@ -74,7 +77,7 @@ static noinline Result parse_chlo(flow_data *flow, char **dest)
 	}
 
 	// Get the length of all the extensions
-	memcpy(&extensions_len, &flow->data[offset], 2);
+	memcpy(&extensions_len, flow->data + offset, 2);
 	extensions_len = ntohs(extensions_len);
 	debug_log("[xt_tls] Extensions length: %d\n", extensions_len);
 
@@ -88,10 +91,10 @@ static noinline Result parse_chlo(flow_data *flow, char **dest)
 	{
 		u16 extension_id, extension_len;
 
-		memcpy(&extension_id, &flow->data[offset + extension_offset], 2);
+		memcpy(&extension_id, flow->data + offset + extension_offset, 2);
 		extension_offset += 2;
 
-		memcpy(&extension_len, &flow->data[offset + extension_offset], 2);
+		memcpy(&extension_len, flow->data + offset + extension_offset, 2);
 		extension_offset += 2;
 
 		extension_id = ntohs(extension_id), extension_len = ntohs(extension_len);
@@ -108,10 +111,10 @@ static noinline Result parse_chlo(flow_data *flow, char **dest)
 			// as there's only one type in the RFC-spec.
 			// However I'm leaving it in here for
 			// debugging purposes.
-			name_type = flow->data[offset + extension_offset];
+			name_type = *(flow->data + offset + extension_offset);
 			extension_offset += 1;
 
-			memcpy(&name_length, &flow->data[offset + extension_offset], 2);
+			memcpy(&name_length, flow->data + offset + extension_offset, 2);
 			name_length = ntohs(name_length);
 			extension_offset += 2;
 
@@ -120,7 +123,7 @@ static noinline Result parse_chlo(flow_data *flow, char **dest)
 
 			// Allocate an extra byte for the null-terminator
 			*dest = kmalloc(name_length + 1, GFP_KERNEL);
-			strncpy(*dest, &flow->data[offset + extension_offset], name_length);
+			strncpy(*dest, flow->data + offset + extension_offset, name_length);
 			// Make sure the string is always null-terminated.
 			(*dest)[name_length] = 0;
 
@@ -190,7 +193,7 @@ static noinline int get_tls_hostname(const struct sk_buff *skb, char **dest)
 		Result result;
 		memcpy(&tls_header_len, flow->data + 3, 2);
 		tls_header_len = ntohs(tls_header_len);
-		handshake_protocol = flow->data[5];
+		handshake_protocol = *(flow->data + 5);
 
 		debug_log("[xt_tls] header_offset: %d", header_offset);
 
