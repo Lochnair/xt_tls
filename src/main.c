@@ -184,7 +184,7 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 	while (flow->data + header_offset <= flow->tail && *(flow->data + header_offset) == 0x16)
 	{
 		Result result;
-		memcpy(tls_header_len, flow->data + 3, 2);
+		memcpy(&tls_header_len, flow->data + 3, 2);
 		ntohs(tls_header_len);
 		handshake_protocol = flow->data[5];
 
