@@ -2,6 +2,7 @@ typedef struct {
 	__u32 hash;
 	__u8 *data;
 	__u16 data_len;
+	__u8 *tail;
 	struct list_head list;
 } flow_data;
 

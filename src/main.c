@@ -169,6 +169,7 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 		flow->data = krealloc(flow->data, skb_payload_len + flow->data_len, GFP_KERNEL);
 		memcpy(flow->data + flow->data_len, skb_payload, skb_payload_len);
 		flow->data_len += skb_payload_len;
+		flow->tail = flow->data + flow->data_len;
 	} else {
 		debug_log("[xt_tls] flow not found");
 
@@ -177,9 +178,10 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 		memcpy(flow->data, skb_payload, skb_payload_len);
 		flow->data_len = skb_payload_len;
 		flow->hash = hash;
+		flow->tail = flow->data + flow->data_len;
 	}
 
-	while (flow->data[header_offset] == 0x16)
+	while (flow->data + header_offset <= flow->tail && *(flow->data + header_offset) == 0x16)
 	{
 		Result result;
 		tls_header_len = (flow->data[3] << 8) + flow->data[4] + 5;
