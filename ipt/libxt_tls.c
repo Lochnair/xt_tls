@@ -49,6 +49,11 @@ static void tls_parse(struct xt_option_call *cb)
 				info->invert |= XT_TLS_OP_HOST;
 			break;
 	}
+
+	if (strlen(info->tls_group) > 0)
+		info->match_type = XT_TLS_OP_GROUP;
+	if (strlen(info->tls_host) > 0)
+		info->match_type = XT_TLS_OP_HOST;
 }
 
 static void tls_check(struct xt_fcheck_call *cb)
@@ -60,6 +65,9 @@ static void tls_check(struct xt_fcheck_call *cb)
 
 	if (cb->xflags == 0)
 		xtables_error(PARAMETER_PROBLEM, "TLS: no tls option specified");
+
+	if (info->match_type == 0)
+		xtables_error(PARAMETER_PROBLEM, "TLS: match type is zero");
 }
 
 static void tls_print(const void *ip, const struct xt_entry_match *match, int numeric)
