@@ -49,11 +49,6 @@ static void tls_parse(struct xt_option_call *cb)
 				info->invert |= XT_TLS_OP_HOST;
 			break;
 	}
-
-	if (strlen(info->tls_group) > 0)
-		info->match_type = XT_TLS_OP_GROUP;
-	if (strlen(info->tls_host) > 0)
-		info->match_type = XT_TLS_OP_HOST;
 }
 
 static void tls_check(struct xt_fcheck_call *cb)

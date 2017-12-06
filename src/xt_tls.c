@@ -187,6 +187,7 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	if ((result = get_tls_hostname(skb, &parsed_host)) != 0)
 		return false;
 
+	printk("match type: %d", info->match_type);
 	switch (info->match_type)
 	{
 		case XT_TLS_OP_GROUP:
@@ -212,6 +213,7 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 static int tls_mt_check (const struct xt_mtchk_param *par)
 {
 	__u16 proto;
+	struct xt_tls_info * info = par->matchinfo;
 
 	if (par->family == NFPROTO_IPV4) {
 		proto = ((const struct ipt_ip *) par->entryinfo)->proto;
@@ -226,6 +228,12 @@ static int tls_mt_check (const struct xt_mtchk_param *par)
 			"-p tcp\n");
 		return -EINVAL;
 	}
+
+	// This does probably not belong here, but I'm not sure where else it fits
+	if (strlen(info->tls_group) > 0)
+		info->match_type = XT_TLS_OP_GROUP;
+	if (strlen(info->tls_host) > 0)
+		info->match_type = XT_TLS_OP_HOST;
 
 	return 0;
 }
