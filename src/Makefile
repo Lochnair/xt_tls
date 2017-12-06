@@ -6,10 +6,10 @@ KDIR := /lib/modules/$(KERNEL_VERSION)/build
 PWD := $(shell pwd)
 VERSION := $(shell git rev-parse HEAD 2>/dev/null)
 default:
-	    $(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
+	    $(MAKE) -C $(KDIR) SUBDIRS=$(PWD) CFLAGS_MODULE="-DXT_TLS_GROUP_SUPPORT" KBUILD_EXTRA_SYMBOLS=../../dnset/src/Module.symvers modules
 
 debug:
-	    $(MAKE) -C $(KDIR) SUBDIRS=$(PWD) CFLAGS_MODULE="-DXT_TLS_DEBUG" modules
+	    $(MAKE) -C $(KDIR) SUBDIRS=$(PWD) CFLAGS_MODULE="-DXT_TLS_DEBUG -DXT_TLS_GROUP_SUPPORT" KBUILD_EXTRA_SYMBOLS=../../dnset/src/Module.symvers modules
 
 install:
 	    install -v -m 644 xt_tls.ko $(IDIR)

@@ -11,6 +11,10 @@
 #include <linux/inet.h>
 #include <asm/errno.h>
 
+#ifdef XT_TLS_GROUP_SUPPORT
+#include "dnset.h"
+#endif
+
 #include "compat.h"
 #include "xt_tls.h"
 
@@ -178,12 +182,20 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	const struct xt_tls_info *info = par->matchinfo;
 	int result;
 	bool invert = (info->invert & XT_TLS_OP_HOST);
-	bool match;
+	bool match = false;
 
 	if ((result = get_tls_hostname(skb, &parsed_host)) != 0)
 		return false;
 
-	match = glob_match(info->tls_host, parsed_host);
+	switch (info->match_type)
+	{
+		case XT_TLS_OP_GROUP:
+			match = dnset_match((u8 *)info->tls_group, parsed_host);
+			break;
+		case XT_TLS_OP_HOST:
+			match = glob_match(info->tls_host, parsed_host);
+			break;
+	}
 
 #ifdef XT_TLS_DEBUG
 	printk("[xt_tls] Parsed domain: %s\n", parsed_host);
