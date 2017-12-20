@@ -1,4 +1,6 @@
 CFLAGS = -I../src -fPIC
+DESTDIR ?= /
+XTABLES_LIB=$(shell pkg-config --variable=xtlibdir xtables)
 
 all:
 	make libxt_tls.so
@@ -9,4 +11,4 @@ lib%.o: %lib%.c
 clean:
 	rm -rf libxt_tls.so
 install:
-	install -v -m 644 libxt_tls.so /lib/xtables
+	install -D -v -m 644 libxt_tls.so $(DESTDIR)$(XTABLES_LIB)
