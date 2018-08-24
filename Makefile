@@ -1,5 +1,6 @@
 DESTDIR ?= /
 DESTDIR_TMP := $(shell readlink -f $(DESTDIR))
+SHELL = bash
 
 all:
 	$(MAKE) -C ipt
