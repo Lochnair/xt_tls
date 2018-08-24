@@ -32,7 +32,7 @@ sudo make install
 ```bash
 git clone https://github.com/Lochnair/xt_tls.git
 cd xt_tls
-sudo make dkms
+sudo make dkms-install
 ```
 
 ## Usage
