@@ -13,3 +13,9 @@ install:
 clean:
 	$(MAKE) -C src clean
 	$(MAKE) -C ipt clean
+dkms:
+	. ./dkms.conf; \
+		cp -R . /usr/src/$${PACKAGE_NAME}-$${PACKAGE_VERSION}; \
+		dkms add -m $${PACKAGE_NAME} -v $${PACKAGE_VERSION}; \
+		dkms build -m $${PACKAGE_NAME} -v $${PACKAGE_VERSION}; \
+		dkms install -m $${PACKAGE_NAME} -v $${PACKAGE_VERSION}
