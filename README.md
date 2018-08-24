@@ -9,7 +9,7 @@ xt\_tls is an extension for netfilter/IPtables that allows you to filter traffic
 - Add more advanced matching features (i.e. wildcard matching)
 - Add support for matching on the server certificate
 
-## Installation
+## Manual Installation
 
 ### Prerequisites
 - Kernel headers (`apt install linux-headers-$(uname -r)`)
@@ -22,6 +22,17 @@ git clone https://github.com/Lochnair/xt_tls.git
 cd xt_tls
 make
 sudo make install
+```
+
+## [DKMS](https://en.wikipedia.org/wiki/Dynamic_Kernel_Module_Support) Installation
+
+### Additional Prerequisites
+- DKMS (`apt install dkms`)
+
+```bash
+git clone https://github.com/Lochnair/xt_tls.git
+cd xt_tls
+sudo make dkms
 ```
 
 ## Usage
