@@ -64,7 +64,7 @@ static void tls_save(const void *ip, const struct xt_entry_match *match)
 }
 
 static struct xtables_match tls_match = {
-	.family					= NFPROTO_IPV4,
+	.family					= NFPROTO_UNSPEC,
 	.name						= "tls",
 	.version				= XTABLES_VERSION,
 	.size						= XT_ALIGN(sizeof(struct xt_tls_info)),
