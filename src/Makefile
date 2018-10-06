@@ -13,6 +13,7 @@ debug:
 
 install:
 	    $(MAKE) -C $(KDIR) SUBDIRS=$(PWD) INSTALL_MOD_PATH=$(DESTDIR) modules_install
+	    depmod -a
 
 clean:
 	    rm -rf Module.markers modules.order Module.symvers xt_tls.ko xt_tls.mod.c xt_tls.mod.o xt_tls.o
