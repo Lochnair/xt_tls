@@ -25,32 +25,46 @@
 static int get_quic_hostname(const struct sk_buff *skb, char **dest)
 {
 	// Base offset, skip to stream ID
-	int base_offset = 13, offset;
+	u_int16_t base_offset = 13, offset;
 	struct udphdr *udp_header;
 	char *data;
 
 	udp_header = (struct udphdr *)skb_transport_header(skb);
 	// The UDP header is a total of 8 bytes, so the data is at udp_header address + 8 bytes
 	data = (char *)udp_header + 8;
-
-	// Stream ID must be 1
+	u_int udpdatalen = ntohs(udp_header->len);
+#ifdef XT_TLS_DEBUG
+	printk("[xt_tls] UDP length: %d\n",udpdatalen);
+#endif
+	//quic client hello is always 1358 bytes - usage of padding
+	if (udpdatalen != 1358)
+		return EPROTO;
+#ifdef XT_TLS_DEBUG
+	printk("[xt_tls] data[base_offset]: %d\n",data[base_offset]);
+#endif
+	// Packet Number must be 1
 	if (data[base_offset] != 1)
 		return EPROTO;
-
 	offset = base_offset + 17; // Skip data length
 	// Only continue if this is a client hello
 	if (strncmp(&data[offset], "CHLO", 4) == 0)
 	{
+#ifdef XT_TLS_DEBUG
+		printk("[xt_tls] Client Hello CHLO found\n");
+#endif		
 		u_int32_t prev_end_offset = 0;
-		int tag_number, tag_offset = 0;
+		int tag_offset = 0;
+		u_int16_t tag_number;
 		int i;
 
 		offset += 4; // Size of tag
 		memcpy(&tag_number, &data[offset], 2);
 		ntohs(tag_number);
-
+#ifdef XT_TLS_DEBUG
+		printk("[xt_tls] SNI tag number: %d\n",tag_number);
+#endif
 		offset += 4; // Size of tag number + padding
-
+		base_offset=offset;
 		for (i = 0; i < tag_number; i++)
 		{
 			u_int32_t tag_end_offset;
@@ -64,10 +78,12 @@ static int get_quic_hostname(const struct sk_buff *skb, char **dest)
 			if (match == 0)
 			{
 				int name_length = tag_end_offset - prev_end_offset;
-
+#ifdef XT_TLS_DEBUG
+				printk("[xt_tls] SNI offset start: %d - end: %d\n",prev_end_offset,tag_end_offset);
+#endif
 				*dest = kmalloc(name_length + 1, GFP_KERNEL);
 				strncpy(*dest, &data[base_offset+ tag_number*8+ prev_end_offset], name_length);
-				dest[name_length]=0;//make sure string is null terminated
+				(*dest)[name_length]=0;//make sure string is null terminated
 				return 0;
 			} else {
 				prev_end_offset = tag_end_offset;
@@ -246,31 +262,31 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	struct iphdr *ip_header = (struct iphdr *)skb_network_header(skb);
 	if (ip_header->version == 4) {//ipv4
 		proto=ip_header->protocol;
-#ifdef XT_TLS_DEBUG
-                printk("[xt_tls] IPv4\n");
-#endif
+//#ifdef XT_TLS_DEBUG
+//                printk("[xt_tls] IPv4\n");
+//#endif
 	}else if (ip_header->version == 6) {
 		struct ipv6hdr *ipv6_header = (struct ipv6hdr  *)skb_network_header(skb);
                 proto=ipv6_header->nexthdr;
 		proto=6;
-#ifdef XT_TLS_DEBUG
-                printk("[xt_tls] IPv6\n");
-	}else{
-		// This shouldn't be possible.
-		printk("[xt_tls] not IPv4 nor IPv6\n");
-#endif
+//#ifdef XT_TLS_DEBUG
+//                printk("[xt_tls] IPv6\n");
+//	}else{
+//		// This shouldn't be possible.
+//		printk("[xt_tls] not IPv4 nor IPv6\n");
+//#endif
 		return false;
 	}	
 	if (proto == IPPROTO_TCP) {
-#ifdef XT_TLS_DEBUG
-                printk("[xt_tls] TCP\n");
-#endif
+//#ifdef XT_TLS_DEBUG
+//                printk("[xt_tls] TCP\n");
+//#endif
 		if ((result = get_tls_hostname(skb, &parsed_host)) != 0)
 			return false;
 	} else if (proto == IPPROTO_UDP) {
-#ifdef XT_TLS_DEBUG
-                printk("[xt_tls] TCP\n");
-#endif
+//#ifdef XT_TLS_DEBUG
+//                printk("[xt_tls] UDP\n");
+//#endif
 		if ((result = get_quic_hostname(skb, &parsed_host)) != 0)
 			return false;
 	} else {
