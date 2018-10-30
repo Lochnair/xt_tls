@@ -24,7 +24,7 @@
  */
 static int get_quic_hostname(const struct sk_buff *skb, char **dest)
 {
-	// Base offset, skip to stream ID
+	// Base offset, skip to packet number
 	u_int16_t base_offset = 13, offset;
 	struct udphdr *udp_header;
 	char *data;
