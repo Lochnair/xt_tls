@@ -37,7 +37,7 @@ static int get_quic_hostname(const struct sk_buff *skb, char **dest)
 	if (data[base_offset] != 1)
 		return EPROTO;
 
-	offset = base_offset + 2; // Skip data length
+	offset = base_offset + 17; // Skip data length
 	// Only continue if this is a client hello
 	if (strncmp(&data[offset], "CHLO", 4) == 0)
 	{
@@ -66,7 +66,8 @@ static int get_quic_hostname(const struct sk_buff *skb, char **dest)
 				int name_length = tag_end_offset - prev_end_offset;
 
 				*dest = kmalloc(name_length + 1, GFP_KERNEL);
-				strncpy(*dest, &data[offset + tag_offset], name_length);
+				strncpy(*dest, &data[base_offset+ tag_number*8+ prev_end_offset], name_length);
+				dest[name_length]=0;//make sure string is null terminated
 				return 0;
 			} else {
 				prev_end_offset = tag_end_offset;
@@ -239,22 +240,46 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 {
 	char *parsed_host;
 	const struct xt_tls_info *info = par->matchinfo;
-	int result;
+	int result,proto;
 	bool invert = (info->invert & XT_TLS_OP_HOST);
 	bool match;
-
-	if (par->match->proto == IPPROTO_TCP) {
+	struct iphdr *ip_header = (struct iphdr *)skb_network_header(skb);
+	if (ip_header->version == 4) {//ipv4
+		proto=ip_header->protocol;
+#ifdef XT_TLS_DEBUG
+                printk("[xt_tls] IPv4\n");
+#endif
+	}else if (ip_header->version == 6) {
+		struct ipv6hdr *ipv6_header = (struct ipv6hdr  *)skb_network_header(skb);
+                proto=ipv6_header->nexthdr;
+		proto=6;
+#ifdef XT_TLS_DEBUG
+                printk("[xt_tls] IPv6\n");
+	}else{
+		// This shouldn't be possible.
+		printk("[xt_tls] not IPv4 nor IPv6\n");
+#endif
+		return false;
+	}	
+	if (proto == IPPROTO_TCP) {
+#ifdef XT_TLS_DEBUG
+                printk("[xt_tls] TCP\n");
+#endif
 		if ((result = get_tls_hostname(skb, &parsed_host)) != 0)
 			return false;
-	} else if (par->match->proto == IPPROTO_UDP) {
+	} else if (proto == IPPROTO_UDP) {
+#ifdef XT_TLS_DEBUG
+                printk("[xt_tls] TCP\n");
+#endif
 		if ((result = get_quic_hostname(skb, &parsed_host)) != 0)
 			return false;
 	} else {
+#ifdef XT_TLS_DEBUG
+        	printk("[xt_tls] not TCP nor UDP %d\n",proto);
+#endif
 		// This shouldn't be possible.
 		return false;
 	}
-
-	
 	match = glob_match(info->tls_host, parsed_host);
 
 #ifdef XT_TLS_DEBUG
@@ -268,6 +293,7 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 
 	return match;
 }
+
 
 static int tls_mt_check (const struct xt_mtchk_param *par)
 {
