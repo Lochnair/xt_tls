@@ -2,6 +2,16 @@ CFLAGS = -I../src -fPIC
 DESTDIR ?= /
 XTABLES_LIB=$(shell pkg-config --variable=xtlibdir xtables)
 
+check_for_pkg-config = \
+	ifeq ($(strip $(shell which pkg-config)),) \
+		$(error pkg-config binary not found) \
+	endif
+
+check_xtlibdir = \
+	ifeq ($(strip $(XTABLES_LIB)),) \
+		$(error pkg-config couldn't find the folder to install to. \
+	endif
+
 all: libxt_tls.so
 lib%.so: lib%.o
 	$(CC) -shared -o $@ $^;
@@ -10,6 +20,8 @@ lib%.o: %lib%.c
 clean:
 	rm -rf libxt_tls.so
 install:
+	@:$(call check_for_pkg-config)
+	@:$(call check_xtlibdir)
 	install -D -v -m 644 libxt_tls.so $(DESTDIR)$(XTABLES_LIB)
 uninstall:
 	rm $(DESTDIR)$(XTABLES_LIB)/libxt_tls.so
