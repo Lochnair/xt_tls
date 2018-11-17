@@ -42,9 +42,9 @@ static int get_quic_hostname(const struct sk_buff *skb, char **dest)
 #ifdef XT_TLS_DEBUG
 	printk("[xt_tls] data[base_offset]: %d\n",data[base_offset]);
 #endif
-	// Packet Number must be 1
-	if (data[base_offset] != 1)
-		return EPROTO;
+	//// Packet Number must be 1
+	//if (data[base_offset] != 1)
+	//	return EPROTO;
 	offset = base_offset + 17; // Skip data length
 	// Only continue if this is a client hello
 	if (strncmp(&data[offset], "CHLO", 4) == 0)
