@@ -12,8 +12,8 @@ xt\_tls is an extension for netfilter/IPtables that allows you to filter traffic
 ## Manual Installation
 
 ### Prerequisites
-- Kernel headers (`apt install linux-headers-$(uname -r)`)
-- IPtables devel (`apt install iptables-dev`)
+- Kernel headers (`apt install linux-headers-$(uname -r)` or `yum install kernel-devel`)
+- IPtables devel (`apt install iptables-dev` or `yum install iptables-devel`)
 - Glob kernel module
 - Netfilter defrag modules: nf\_defrag\_ipv4 and nf\_defrag\_ipv6
 
@@ -27,7 +27,7 @@ sudo make install
 ## [DKMS](https://en.wikipedia.org/wiki/Dynamic_Kernel_Module_Support) Installation
 
 ### Additional Prerequisites
-- DKMS (`apt install dkms`)
+- DKMS (`apt install dkms` or `yum install dkms` (from EPEL) )
 
 ```bash
 git clone https://github.com/Lochnair/xt_tls.git
