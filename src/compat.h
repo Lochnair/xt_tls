@@ -3,7 +3,9 @@
  * glob_match wasn't added before kernel 3.17
  * so I've copied the source from 4.11
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 17, 0)
+#if IS_ENABLED(CONFIG_GLOB)
+	#include <linux/glob.h>
+#else	
 	static inline bool __pure glob_match(char const *pat, char const *str)
 	{
 		/*
@@ -87,6 +89,4 @@
 			}
 		}
 	}
-#else
-	#include <linux/glob.h>
 #endif
