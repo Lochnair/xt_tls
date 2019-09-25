@@ -23,26 +23,73 @@
  */
 static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 {
-	struct tcphdr *tcp_header;
 	char *data, *tail;
 	size_t data_len;
 	u_int16_t tls_header_len;
 	u_int8_t handshake_protocol;
+	bool data_buf_allocated = false;
 
-	tcp_header = (struct tcphdr *)skb_transport_header(skb);
-	// I'm not completely sure how this works (courtesy of StackOverflow), but it works
-	data = (char *)((unsigned char *)tcp_header + (tcp_header->doff * 4));
+	struct iphdr *ip_header = (struct iphdr *)skb_network_header(skb);
+	size_t ip_header_len = ip_header->ihl * 4;
+	size_t ip_packet_len = ntohs(ip_header->tot_len);
+	struct tcphdr *tcp_header = (struct tcphdr *)skb_transport_header(skb);
+	size_t tcp_header_len = tcp_header->doff * 4;
+	size_t payload_len = ip_packet_len - ip_header_len - tcp_header_len;
+#ifdef XT_TLS_DEBUG
+	printk("[xt_tls] ip-header-length=%zu,  ip-packet-length=%zu\n", ip_header_len, ip_packet_len);
+	printk("[xt_tls] tcp-header-length=%zu,  payload-length=%zu\n", tcp_header_len, payload_len);
+	printk("[xt_tls] tcp_header=%px\n", tcp_header);
+	printk("[xt_tls] tcp_header[]: %60ph\n", tcp_header);
+	printk("[xt_tls] tcp_header->doff=%u\n", tcp_header->doff);
+#endif
+
+        // Check if entire packet data is here
 	tail = skb_tail_pointer(skb);
-	// Calculate packet data length
+#ifdef XT_TLS_DEBUG
+	printk("[xt_tls] skb-tail=%px\n", tail);
+#endif
+	// First set the packet payload pointer right after the TCP-header
+	// as if we were sure that the entire packet resides in the linear address space
+	data = (char *)tcp_header + (tcp_header->doff * 4);
+	// Calculate the length of the available packet data portion
 	data_len = (uintptr_t)tail - (uintptr_t)data;
+	// ...and check if we really have the entire packet
+	if (data_len < payload_len) {
+	        // if not - copy the missing portion from wherever it is
+#ifdef XT_TLS_DEBUG
+		printk("[xt_tls] Not all payload available right now - try to gather it\n");
+#endif
+		data = kmalloc(payload_len, GFP_KERNEL);
+		if (!data)
+			return ENOMEM;
+		data_buf_allocated = true;
+		if (skb_copy_bits(skb, skb_transport_offset(skb) + tcp_header_len, data, payload_len)) {
+			kfree(data);
+			return EPROTO;
+		}//if
+		data_len = payload_len;
+	}//if
 
+#ifdef XT_TLS_DEBUG
+	printk("[xt_tls] data=%px\n", data);
+	printk("[xt_tls] data[]: %64ph\n", data);
+	printk("[xt_tls] Content-type=0x%X\n", (unsigned char)data[0]);
+#endif
 	// If this isn't an TLS handshake, abort
 	if (data[0] != 0x16) {
+#ifdef XT_TLS_DEBUG
+		printk("[xt_tls] Not TLS handshaking\n");
+#endif
+		if (data_buf_allocated)
+			kfree(data);
 		return EPROTO;
 	}
 
-	tls_header_len = (data[3] << 8) + data[4] + 5;
+	tls_header_len = ((unsigned char)data[3] << 8) + (unsigned char)data[4] + 5;
 	handshake_protocol = data[5];
+#ifdef XT_TLS_DEBUG
+	printk("[xt_tls] tls_header_len=%u, data_len=%zu\n", tls_header_len, data_len);
+#endif
 
 	// Even if we don't have all the data, try matching anyway
 	if (tls_header_len > data_len)
@@ -58,6 +105,8 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 #ifdef XT_TLS_DEBUG
 				printk("[xt_tls] Data length is to small (%d)\n", (int)data_len);
 #endif
+				if (data_buf_allocated)
+					kfree(data);
 				return EPROTO;
 			}
 
@@ -71,6 +120,8 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 #ifdef XT_TLS_DEBUG
 				printk("[xt_tls] TLS header length is smaller than session_id_len + base_offset +2 (%d > %d)\n", (session_id_len + base_offset + 2), tls_header_len);
 #endif
+				if (data_buf_allocated)
+					kfree(data);
 				return EPROTO;
 			}
 
@@ -86,6 +137,8 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 #ifdef XT_TLS_DEBUG
 				printk("[xt_tls] TLS header length is smaller than offset (%d > %d)\n", offset, tls_header_len);
 #endif
+				if (data_buf_allocated)
+					kfree(data);
 				return EPROTO;
 			}
 
@@ -100,6 +153,8 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 #ifdef XT_TLS_DEBUG
 				printk("[xt_tls] TLS header length is smaller than offset w/compression (%d > %d)\n", offset, tls_header_len);
 #endif
+				if (data_buf_allocated)
+					kfree(data);
 				return EPROTO;
 			}
 
@@ -114,6 +169,8 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 #ifdef XT_TLS_DEBUG
 				printk("[xt_tls] TLS header length is smaller than offset w/extensions (%d > %d)\n", (extensions_len + offset), tls_header_len);
 #endif
+				if (data_buf_allocated)
+					kfree(data);
 				return EPROTO;
 			}
 
@@ -161,6 +218,8 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 					// Make sure the string is always null-terminated.
 					(*dest)[name_length] = 0;
 
+					if (data_buf_allocated)
+						kfree(data);
 					return 0;
 				}
 
@@ -169,6 +228,8 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 		}
 	}
 
+	if (data_buf_allocated)
+		kfree(data);
 	return EPROTO;
 }
 
