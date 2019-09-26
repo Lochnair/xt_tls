@@ -6,3 +6,4 @@ src/modules.order
 src/*.cmd
 src/*.mod.c
 src/.tmp_versions/
+src/.cache.mk
