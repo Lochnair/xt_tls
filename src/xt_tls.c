@@ -38,9 +38,11 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 	size_t ip_packet_len = ntohs(ip_header->tot_len);
 	struct tcphdr *tcp_header = (struct tcphdr *)skb_transport_header(skb);
 	size_t tcp_header_len = tcp_header->doff * 4;
-	size_t payload_len = ip_packet_len - ip_header_len - tcp_header_len;
+	//size_t payload_len = ip_packet_len - ip_header_len - tcp_header_len;
+	size_t payload_len = skb->len - skb_transport_offset(skb) - tcp_header_len;
 #ifdef XT_TLS_DEBUG
-	printk("[xt_tls] ip-header-length=%zu,  ip-packet-length=%zu\n", ip_header_len, ip_packet_len);
+	printk("[xt_tls] skb->len=%u, skb_transport_offset=%u\n", skb->len, skb_transport_offset(skb));
+	printk("[xt_tls] ip-header-length=%zu, ip-packet-length=%zu\n", ip_header_len, ip_packet_len);
 	printk("[xt_tls] tcp-header-length=%zu,  payload-length=%zu\n", tcp_header_len, payload_len);
 	printk("[xt_tls] tcp_header=%px\n", tcp_header);
 	printk("[xt_tls] tcp_header[]: %60ph\n", tcp_header);
