@@ -1,4 +1,4 @@
-#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+#define pr_fmt(fmt) "[" KBUILD_MODNAME "]: " fmt
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/skbuff.h>
@@ -9,10 +9,23 @@
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <linux/inet.h>
+#include <linux/proc_fs.h>
 #include <asm/errno.h>
 
 #include "compat.h"
 #include "xt_tls.h"
+#include "hostset.h"
+
+// The maximum number of host sets
+static int max_host_sets = 8;
+module_param(max_host_sets, int, S_IRUGO);
+MODULE_PARM_DESC(max_host_sets, "host set table capacity (default 8)");
+
+// The table of the host sets we use
+static struct host_set *host_set_table;
+
+// The proc-fs subdirectory for hostsets
+struct proc_dir_entry *proc_fs_dir, *proc_fs_hostset_dir;
 
 /*
  * Searches through skb->data and looks for a
@@ -62,7 +75,7 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 #endif
 		data = kmalloc(payload_len, GFP_KERNEL);
 		if (!data)
-			return ENOMEM;
+			return -ENOMEM;
 		data_buf_allocated = true;
 		if (skb_copy_bits(skb, skb_transport_offset(skb) + tcp_header_len, data, payload_len)) {
 			kfree(data);
@@ -231,13 +244,27 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	char *parsed_host;
 	const struct xt_tls_info *info = par->matchinfo;
 	int result;
-	bool invert = (info->invert & XT_TLS_OP_HOST);
+	
+	int pattern_type = (info->op_flags & XT_TLS_OP_HOSTSET) ?
+	    XT_TLS_OP_HOSTSET : XT_TLS_OP_HOST;
+	bool invert = (pattern_type == XT_TLS_OP_HOSTSET) ?
+	    (info->inversion_flags & XT_TLS_OP_HOSTSET) :
+	    (info->inversion_flags & XT_TLS_OP_HOST);
+	bool suffix_matching = info->op_flags & XT_TLS_OP_SUFFIX;
 	bool match;
 
 	if ((result = get_tls_hostname(skb, &parsed_host)) != 0)
 		return false;
 
-	match = glob_match(info->tls_host, parsed_host);
+	switch (pattern_type) {
+	    case XT_TLS_OP_HOST:
+		match = glob_match(info->host_or_set_name, parsed_host);
+		break;
+	    case XT_TLS_OP_HOSTSET:
+		match = hs_lookup(&host_set_table[info->hostset_index], 
+			parsed_host, suffix_matching);
+		break;
+	}//switch
 
 #ifdef XT_TLS_DEBUG
 	printk("[xt_tls] Parsed domain: %s\n", parsed_host);
@@ -251,9 +278,11 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	return match;
 }
 
+
 static int tls_mt_check (const struct xt_mtchk_param *par)
 {
 	__u16 proto;
+	struct xt_tls_info *match_info = par->matchinfo;
 
 	if (par->family == NFPROTO_IPV4) {
 		proto = ((const struct ipt_ip *) par->entryinfo)->proto;
@@ -264,20 +293,68 @@ static int tls_mt_check (const struct xt_mtchk_param *par)
 	}
 
 	if (proto != IPPROTO_TCP) {
-		pr_info("Can be used only in combination with "
-			"-p tcp\n");
+		pr_info("Can be used only in combination with -p tcp\n");
 		return -EINVAL;
 	}
+	
+	// If the rule contains --tls-hostset, try to find an existing matching
+	// hostset table entry or allocate a new one
+	if (match_info->op_flags & XT_TLS_OP_HOSTSET) {
+	    int i;
+	    bool found = false;
+	    
+	    for (i = 0; i < max_host_sets; i++) {
+		found = !hs_is_free(&host_set_table[i]) && 
+		    strcmp(host_set_table[i].name, match_info->host_or_set_name) == 0;
+		if (found)
+		    break;
+	    }//for
+	    
+	    if (found) {
+		hs_hold(&host_set_table[i]);
+	    } else {
+		int rc;
+		for (i = 0; i < max_host_sets; i++) {
+		    found = hs_is_free(&host_set_table[i]);
+		    if (found)
+			break;
+		}//for
+		if (!found) {
+		    pr_err("Cannot add a new hostset: the hostset table is full\n");
+		    return -ENOMEM;
+		}//if
+		rc = hs_init(&host_set_table[i], match_info->host_or_set_name);
+		if (rc)
+		    return rc;
+	    }//if
+	    
+	    match_info->hostset_index = i;
+	}//if
 
 	return 0;
 }
 
+
+static void tls_mt_destroy(const struct xt_mtdtor_param *par)
+{
+	struct xt_tls_info *match_info = par->matchinfo;
+#ifdef XT_TLS_DEBUG
+	pr_info("tls_mt_destroy: match_info: op_flags=0x%X, hostset_index=%u\n", 
+		match_info->op_flags, match_info->hostset_index);
+#endif
+	if (match_info->op_flags & XT_TLS_OP_HOSTSET) {
+	    hs_free(&host_set_table[match_info->hostset_index]);
+	}//if
+}//tls_mt_destroy
+
+
 static struct xt_match tls_mt_regs[] __read_mostly = {
 	{
 		.name       = "tls",
-		.revision   = 0,
+		.revision   = 1,
 		.family     = NFPROTO_IPV4,
 		.checkentry = tls_mt_check,
+		.destroy    = tls_mt_destroy,
 		.match      = tls_mt,
 		.matchsize  = sizeof(struct xt_tls_info),
 		.me         = THIS_MODULE,
@@ -285,9 +362,10 @@ static struct xt_match tls_mt_regs[] __read_mostly = {
 #if IS_ENABLED(CONFIG_IP6_NF_IPTABLES)
 	{
 		.name       = "tls",
-		.revision   = 0,
+		.revision   = 1,
 		.family     = NFPROTO_IPV6,
 		.checkentry = tls_mt_check,
+		.destroy    = tls_mt_destroy,
 		.match      = tls_mt,
 		.matchsize  = sizeof(struct xt_tls_info),
 		.me         = THIS_MODULE,
@@ -295,14 +373,75 @@ static struct xt_match tls_mt_regs[] __read_mostly = {
 #endif
 };
 
+
+static int __net_init tls_net_init(struct net *net)
+{
+    proc_fs_dir = proc_mkdir(KBUILD_MODNAME, net->proc_net);
+    proc_fs_hostset_dir = proc_mkdir(PROC_FS_HOSTSET_SUBDIR, proc_fs_dir);
+    if (! proc_fs_hostset_dir) {
+	pr_err("Cannot create /proc/net/ subdirectory for this module\n");
+	return -EFAULT;
+    }//if
+    return 0;
+}//tls_net_init
+
+
+static void __net_exit tls_net_exit(struct net *net)
+{
+    proc_remove(proc_fs_hostset_dir);
+    proc_remove(proc_fs_dir);
+}//tls_net_exit
+
+
+static struct pernet_operations tls_net_ops = {
+    .init = tls_net_init,
+    .exit = tls_net_exit,
+};
+
+
 static int __init tls_mt_init (void)
 {
-	return xt_register_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+	int i;
+	int rc = xt_register_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+	if (rc)
+	    return rc;
+	
+	rc = register_pernet_subsys(&tls_net_ops);
+	if (rc) {
+	    pr_err("Cannot register pernet subsys\n");
+	    xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+	    unregister_pernet_subsys(&tls_net_ops);
+	    return rc;
+	}//if
+	
+	host_set_table = kmalloc(sizeof (struct host_set) * max_host_sets, GFP_KERNEL);
+	if (! host_set_table) {
+	    pr_err("Cannot allocate memory for the host set table\n");
+	    xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+	    return -ENOMEM;
+	}//if
+#ifdef XT_TLS_DEBUG
+	pr_info("Host set table allocated (%u elements max)\n", max_host_sets);
+#endif
+	
+	for (i = 0; i < max_host_sets; i++)
+	    hs_zeroize(&host_set_table[i]);
+	
+	return 0;
 }
 
 static void __exit tls_mt_exit (void)
 {
+	int i;
 	xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+	
+	for (i = 0; i < max_host_sets; i++)
+	    hs_destroy(&host_set_table[i]);
+	kfree(host_set_table);
+	unregister_pernet_subsys(&tls_net_ops);
+#ifdef XT_TLS_DEBUG
+	pr_info("Host set table disposed\n");
+#endif
 }
 
 module_init(tls_mt_init);
@@ -311,4 +450,5 @@ module_exit(tls_mt_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Nils Andreas Svee <nils@stokkdalen.no>");
 MODULE_DESCRIPTION("Xtables: TLS (SNI) matching");
+MODULE_VERSION("0.3.1");
 MODULE_ALIAS("ipt_tls");
