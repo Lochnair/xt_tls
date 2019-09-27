@@ -275,7 +275,7 @@ static int tls_mt_check (const struct xt_mtchk_param *par)
 static struct xt_match tls_mt_regs[] __read_mostly = {
 	{
 		.name       = "tls",
-		.revision   = 0,
+		.revision   = 1,
 		.family     = NFPROTO_IPV4,
 		.checkentry = tls_mt_check,
 		.match      = tls_mt,
@@ -285,7 +285,7 @@ static struct xt_match tls_mt_regs[] __read_mostly = {
 #if IS_ENABLED(CONFIG_IP6_NF_IPTABLES)
 	{
 		.name       = "tls",
-		.revision   = 0,
+		.revision   = 1,
 		.family     = NFPROTO_IPV6,
 		.checkentry = tls_mt_check,
 		.match      = tls_mt,

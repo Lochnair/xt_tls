@@ -8,12 +8,18 @@
 enum {
 	O_TLS_HOST = 0,
 	O_TLS_PORT = 1,
+	O_TLS_HOSTSET = 2,
 };
 
 static void tls_help(void)
 {
 	printf(
-"tls match options:\n[!] --tls-host hostname\n"
+		"tls match options:\n"
+		"  [!] --tls-host hostname\n"
+		"  [!] --tls-hostset hostset-name\n"
+		"  --tls-host and --tls-hostset are mutually exclusive\n"
+		"  The content of the hostset <HS> is accessible through "
+		    PROC_FS_HOSTSET_DIR "<HS>/n"
 	);
 }
 
@@ -21,6 +27,12 @@ static const struct xt_option_entry tls_opts[] = {
 	{
 		.name = "tls-host",
 		.id = O_TLS_HOST,
+		.type = XTTYPE_STRING,
+		.flags = XTOPT_INVERT | XTOPT_PUT, XTOPT_POINTER(struct xt_tls_info, tls_host),
+	},
+	{
+		.name = "tls-hostset",
+		.id = O_TLS_HOSTSET,
 		.type = XTTYPE_STRING,
 		.flags = XTOPT_INVERT | XTOPT_PUT, XTOPT_POINTER(struct xt_tls_info, tls_host),
 	},
