@@ -76,17 +76,18 @@ static void tls_save(const void *ip, const struct xt_entry_match *match)
 }
 
 static struct xtables_match tls_match = {
-	.family					= NFPROTO_UNSPEC,
-	.name						= "tls",
-	.version				= XTABLES_VERSION,
-	.size						= XT_ALIGN(sizeof(struct xt_tls_info)),
+	.family		= NFPROTO_UNSPEC,
+	.name		= "tls",
+	.version	= XTABLES_VERSION,
+	.revision	= 1,
+	.size		= XT_ALIGN(sizeof(struct xt_tls_info)),
 	.userspacesize	= XT_ALIGN(sizeof(struct xt_tls_info)),
-	.help						= tls_help,
-	.print					= tls_print,
-	.save						= tls_save,
-	.x6_parse				= tls_parse,
-	.x6_fcheck			= tls_check,
-	.x6_options			= tls_opts,
+	.help		= tls_help,
+	.print		= tls_print,
+	.save		= tls_save,
+	.x6_parse	= tls_parse,
+	.x6_fcheck	= tls_check,
+	.x6_options	= tls_opts,
 };
 
 void _init(void)

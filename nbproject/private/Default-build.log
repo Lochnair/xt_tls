@@ -1,0 +1,29 @@
+/usr/bin/make -C ipt
+make[1]: входимо до каталогу «/home/mpolk/xt_tls/ipt»
+cc -I../src -fPIC   -c -o libxt_tls.o libxt_tls.c
+cc -shared -o libxt_tls.so libxt_tls.o;
+rm libxt_tls.o
+make[1]: Залишаю каталог "/home/mpolk/xt_tls/ipt"
+/usr/bin/make -C src
+make[1]: входимо до каталогу «/home/mpolk/xt_tls/src»
+/usr/bin/make -C /lib/modules/4.15.0-64-generic/build SUBDIRS=/home/mpolk/xt_tls/src modules
+make[2]: входимо до каталогу «/usr/src/linux-headers-4.15.0-64-generic»
+  CC [M]  /home/mpolk/xt_tls/src/xt_tls.o
+/home/mpolk/xt_tls/src/xt_tls.c: In function ‘get_tls_hostname’:
+/home/mpolk/xt_tls/src/xt_tls.c:235:14: error: function declaration isn’t a prototype [-Werror=strict-prototypes]
+  void inline free_data_buf()
+              ^~~~~~~~~~~~~
+/home/mpolk/xt_tls/src/xt_tls.c:235:2: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
+  void inline free_data_buf()
+  ^~~~
+cc1: some warnings being treated as errors
+scripts/Makefile.build:337: recipe for target '/home/mpolk/xt_tls/src/xt_tls.o' failed
+make[3]: *** [/home/mpolk/xt_tls/src/xt_tls.o] Error 1
+Makefile:1571: recipe for target '_module_/home/mpolk/xt_tls/src' failed
+make[2]: *** [_module_/home/mpolk/xt_tls/src] Error 2
+make[2]: Залишаю каталог "/usr/src/linux-headers-4.15.0-64-generic"
+Makefile:9: recipe for target 'default' failed
+make[1]: *** [default] Error 2
+make[1]: Залишаю каталог "/home/mpolk/xt_tls/src"
+Makefile:6: recipe for target 'all' failed
+make: *** [all] Error 2
