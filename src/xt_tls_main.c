@@ -316,7 +316,7 @@ static int __init tls_mt_init (void)
 	    return -ENOMEM;
 	}//if
 #ifdef XT_TLS_DEBUG
-	pr_info("Host set table allocated (%u elements max)", max_host_sets);
+	pr_debug("Host set table allocated (%u elements max)", max_host_sets);
 #endif
 	
 	for (i = 0; i < max_host_sets; i++)
