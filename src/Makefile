@@ -1,4 +1,5 @@
-obj-m := xt_tls.o
+obj-m += xt_tls.o
+xt_tls-objs := xt_tls_main.o hostset.o 
 KERNEL_VERSION := $(shell uname -r)
 IDIR := /lib/modules/$(KERNEL_VERSION)/kernel/net/netfilter/
 KDIR := /lib/modules/$(KERNEL_VERSION)/build
@@ -16,4 +17,6 @@ install:
 	    depmod -a
 
 clean:
-	    rm -rf Module.markers modules.order Module.symvers xt_tls.ko xt_tls.mod.c xt_tls.mod.o xt_tls.o
+	    rm -rf Module.markers modules.order Module.symvers \
+	           *.ko *.mod.c *.mod.o *.o .*.o.cmd .*.ko.cmd .cache.mk \
+	           .tmp_versions

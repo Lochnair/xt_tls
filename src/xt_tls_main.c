@@ -19,6 +19,9 @@
 int max_host_sets = 8;
 module_param(max_host_sets, int, S_IRUGO);
 
+// The table of the host sets we use
+struct host_set *host_set_table;
+
 /*
  * Searches through skb->data and looks for a
  * client or server handshake. A client
@@ -67,7 +70,7 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 #endif
 		data = kmalloc(payload_len, GFP_KERNEL);
 		if (!data)
-			return ENOMEM;
+			return -ENOMEM;
 		data_buf_allocated = true;
 		if (skb_copy_bits(skb, skb_transport_offset(skb) + tcp_header_len, data, payload_len)) {
 			kfree(data);
@@ -302,12 +305,31 @@ static struct xt_match tls_mt_regs[] __read_mostly = {
 
 static int __init tls_mt_init (void)
 {
-	return xt_register_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+	int i;
+	int rc = xt_register_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+	if (rc)
+	    return rc;
+	
+	host_set_table = kmalloc(sizeof (struct host_set) * max_host_sets, GFP_KERNEL);
+	if (! host_set_table) {
+	    pr_err("Cannot allocate memory for the host set table");
+	    return -ENOMEM;
+	}//if
+	
+	for (i = 0; i < max_host_sets; i++)
+	    hs_zeroize(&host_set_table[i]);
+	
+	return 0;
 }
 
 static void __exit tls_mt_exit (void)
 {
+	int i;
 	xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+	
+	for (i = 0; i < max_host_sets; i++)
+	    hs_destroy(&host_set_table[i]);
+	kfree(host_set_table);
 }
 
 module_init(tls_mt_init);

@@ -1,7 +1,35 @@
+/* 
+ * Structures and functions for working with host name sets.
+ * Host sets are implemented as simple binary trees of the host_set_elem
+ */
+
 #define MAX_HOST_SET_NAME_LEN 31
 
+// Host set element holding a single host name
+struct host_set_elem {
+    struct host_set_elem *left_child, *right_child;
+    char name[]; //the host name (stringz)
+};//host_set_elem
+
+
+// Host set itself
 struct host_set {
-    char name[MAX_HOST_SET_NAME_LEN + 1];
-    int refcount;
+    __u32 refcount; // reference count: increased by 1 with each rule using this set
+    char name[MAX_HOST_SET_NAME_LEN + 1];  //the set name (stringz)
+    struct host_set_elem *hosts;
 };//host_set
 
+
+// Initialize a host set
+int hs_init(struct host_set *hs, const char *name);
+// Free a host set entry (taking into account its refcount)
+void hs_free(struct host_set *hs);
+// Free a host set entry (unconditionally)
+void hs_destroy(struct host_set *hs);
+// Check if this host set entry is free (unused)
+static inline bool hs_is_free(struct host_set *hs) { return hs->refcount == 0; }
+// Zeroize a host set entry (mark it unused)
+static inline void hs_zeroize(struct host_set *hs) { hs->refcount = 0; }
+
+// Free a host element tree
+void hse_free(struct host_set_elem *hse);
