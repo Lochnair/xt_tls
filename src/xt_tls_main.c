@@ -330,6 +330,9 @@ static void __exit tls_mt_exit (void)
 	for (i = 0; i < max_host_sets; i++)
 	    hs_destroy(&host_set_table[i]);
 	kfree(host_set_table);
+#ifdef XT_TLS_DEBUG
+	pr_debug("Host set table disposed");
+#endif
 }
 
 module_init(tls_mt_init);
