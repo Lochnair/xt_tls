@@ -4,6 +4,9 @@
  */
 
 #define MAX_HOST_SET_NAME_LEN 31
+#ifndef CONFIG_PROC_FS
+#error "XT_TLS requires proc filesystem support enabled in the kernel"
+#endif
 
 // Host set element holding a single host name
 struct host_set_elem {
@@ -17,6 +20,9 @@ struct host_set {
     __u32 refcount; // reference count: increased by 1 with each rule using this set
     char name[MAX_HOST_SET_NAME_LEN + 1];  //the set name (stringz)
     struct host_set_elem *hosts;
+#ifdef CONFIG_PROC_FS
+    struct proc_dir_entry *proc_file;
+#endif
 };//host_set
 
 

@@ -9,6 +9,7 @@
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <linux/inet.h>
+#include <linux/proc_fs.h>
 #include <asm/errno.h>
 
 #include "compat.h"
@@ -16,11 +17,12 @@
 #include "xt_tls.h"
 
 // The maximum number of host sets
-int max_host_sets = 8;
+static int max_host_sets = 8;
 module_param(max_host_sets, int, S_IRUGO);
+MODULE_PARM_DESC(max_host_sets, "host set table capacity (default 8)");
 
 // The table of the host sets we use
-struct host_set *host_set_table;
+static struct host_set *host_set_table;
 
 /*
  * Searches through skb->data and looks for a
@@ -316,7 +318,7 @@ static int __init tls_mt_init (void)
 	    return -ENOMEM;
 	}//if
 #ifdef XT_TLS_DEBUG
-	pr_debug("Host set table allocated (%u elements max)", max_host_sets);
+	pr_info("Host set table allocated (%u elements max)", max_host_sets);
 #endif
 	
 	for (i = 0; i < max_host_sets; i++)

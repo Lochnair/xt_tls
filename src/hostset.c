@@ -5,18 +5,26 @@
 
 #include <linux/slab.h>
 #include <linux/string.h>
+#include <linux/proc_fs.h>
 #include <asm/errno.h>
 #include "hostset.h"
 
 // Initialize a host set
 int hs_init(struct host_set *hs, const char *name)
 {
+#ifdef CONFIG_PROC_FS
+    struct proc_dir_entry *pde;
+    kuid_t uid = make_kuid(&init_user_ns, 0);
+    kgid_t gid = make_kgid(&init_user_ns, 0);
+#endif
+    
     if (strlen(name) > MAX_HOST_SET_NAME_LEN)
 	return -EINVAL;
 
     strcpy(hs->name, name);
     hs->refcount = 1;
     hs->hosts = NULL;
+    
     return 0;
 }//hs_init
 
