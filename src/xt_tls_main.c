@@ -315,6 +315,9 @@ static int __init tls_mt_init (void)
 	    pr_err("Cannot allocate memory for the host set table");
 	    return -ENOMEM;
 	}//if
+#ifdef XT_TLS_DEBUG
+	pr_debug("Host set table allocated (%u elements max)", max_host_sets);
+#endif
 	
 	for (i = 0; i < max_host_sets; i++)
 	    hs_zeroize(&host_set_table[i]);
