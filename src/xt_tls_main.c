@@ -316,7 +316,7 @@ static int __init tls_mt_init (void)
 	    return -ENOMEM;
 	}//if
 #ifdef XT_TLS_DEBUG
-	pr_debug("Host set table allocated (%u elements max)", max_host_sets);
+	pr_info("Host set table allocated (%u elements max)", max_host_sets);
 #endif
 	
 	for (i = 0; i < max_host_sets; i++)
@@ -334,7 +334,7 @@ static void __exit tls_mt_exit (void)
 	    hs_destroy(&host_set_table[i]);
 	kfree(host_set_table);
 #ifdef XT_TLS_DEBUG
-	pr_debug("Host set table disposed");
+	pr_info("Host set table disposed");
 #endif
 }
 
