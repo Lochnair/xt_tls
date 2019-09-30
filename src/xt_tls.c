@@ -12,7 +12,12 @@
 #include <asm/errno.h>
 
 #include "compat.h"
+#include "hostset.h"
 #include "xt_tls.h"
+
+// The maximum number of host sets
+int max_host_sets = 8;
+module_param(max_host_sets, int, S_IRUGO);
 
 /*
  * Searches through skb->data and looks for a
