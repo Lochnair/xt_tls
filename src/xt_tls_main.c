@@ -316,7 +316,7 @@ static int __init tls_mt_init (void)
 	    return rc;
 	
 	proc_fs_dir = proc_mkdir("net/"KBUILD_MODNAME, NULL);
-	proc_fs_hostset_dir = proc_mkdir(PROC_FS_HOSTSET_DIR, proc_fs_dir);
+	proc_fs_hostset_dir = proc_mkdir("hostset", proc_fs_dir);
 	if (! proc_fs_hostset_dir) {
 	    pr_err("Cannot create /proc/net/ subdirectory for this module");
 	    return -EFAULT;
