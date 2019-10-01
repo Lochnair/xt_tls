@@ -25,7 +25,7 @@ MODULE_PARM_DESC(max_host_sets, "host set table capacity (default 8)");
 static struct host_set *host_set_table;
 
 // The proc-fs subdirectory for hostsets
-struct proc_dir_entry *proc_fs_hostset_dir;
+struct proc_dir_entry *proc_fs_dir, *proc_fs_hostset_dir;
 
 /*
  * Searches through skb->data and looks for a
@@ -315,7 +315,8 @@ static int __init tls_mt_init (void)
 	if (rc)
 	    return rc;
 	
-	proc_fs_hostset_dir = proc_mkdir(PROC_FS_HOSTSET_DIR, NULL);
+	proc_fs_dir = proc_mkdir("net/"KBUILD_MODNAME, NULL);
+	proc_fs_hostset_dir = proc_mkdir(PROC_FS_HOSTSET_DIR, proc_fs_dir);
 	if (! proc_fs_hostset_dir) {
 	    pr_err("Cannot create /proc/net/ subdirectory for this module");
 	    return -EFAULT;
@@ -345,6 +346,7 @@ static void __exit tls_mt_exit (void)
 	    hs_destroy(&host_set_table[i]);
 	kfree(host_set_table);
 	proc_remove(proc_fs_hostset_dir);
+	proc_remove(proc_fs_dir);
 #ifdef XT_TLS_DEBUG
 	pr_info("Host set table disposed");
 #endif
