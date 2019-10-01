@@ -88,12 +88,12 @@ static void tls_save(const void *ip, const struct xt_entry_match *match)
 
 	if (info->op_flags & XT_TLS_OP_HOST) {
 	    bool invert = info->inversion_flags & XT_TLS_OP_HOST;
-	    printf(" %s --tls-host %s", invert ? " !":"", info->host_or_set_name);
+	    printf("%s --tls-host %s", invert ? " !":"", info->host_or_set_name);
 	}//if
 
 	if (info->op_flags & XT_TLS_OP_HOSTSET) {
 	    bool invert = info->inversion_flags & XT_TLS_OP_HOSTSET;
-	    printf(" %s --tls-hostset %s", invert ? " !":"", info->host_or_set_name);
+	    printf("%s --tls-hostset %s", invert ? " !":"", info->host_or_set_name);
 	}//if
 }
 
