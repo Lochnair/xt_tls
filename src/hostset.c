@@ -18,8 +18,8 @@ static struct file_operations proc_fops = {
 // Initialize a host set
 int hs_init(struct host_set *hs, const char *name)
 {
-//    kuid_t uid = make_kuid(&init_user_ns, 0);
-//    kgid_t gid = make_kgid(&init_user_ns, 0);
+    kuid_t uid = make_kuid(&init_user_ns, 0);
+    kgid_t gid = make_kgid(&init_user_ns, 0);
     
     if (strlen(name) > MAX_HOST_SET_NAME_LEN)
 	return -EINVAL;
@@ -34,7 +34,7 @@ int hs_init(struct host_set *hs, const char *name)
 	pr_err("Cannot create a procfs file for the host set %s", name);
 	return -EFAULT;
     }//if
-//    proc_set_user(hs->proc_file, uid, gid);
+    proc_set_user(hs->proc_file, uid, gid);
     
     return 0;
 }//hs_init
