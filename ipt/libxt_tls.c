@@ -7,8 +7,7 @@
 
 enum {
 	O_TLS_HOST = 0,
-	O_TLS_PORT = 1,
-	O_TLS_HOSTSET = 2,
+	O_TLS_HOSTSET = 1,
 };
 
 static void tls_help(void)
@@ -28,13 +27,13 @@ static const struct xt_option_entry tls_opts[] = {
 		.name = "tls-host",
 		.id = O_TLS_HOST,
 		.type = XTTYPE_STRING,
-		.flags = XTOPT_INVERT | XTOPT_PUT, XTOPT_POINTER(struct xt_tls_info, tls_host),
+		.flags = XTOPT_INVERT | XTOPT_PUT, XTOPT_POINTER(struct xt_tls_info, host_or_set_name),
 	},
 	{
 		.name = "tls-hostset",
 		.id = O_TLS_HOSTSET,
 		.type = XTTYPE_STRING,
-		.flags = XTOPT_INVERT | XTOPT_PUT, XTOPT_POINTER(struct xt_tls_info, tls_host),
+		.flags = XTOPT_INVERT | XTOPT_PUT, XTOPT_POINTER(struct xt_tls_info, host_or_set_name),
 	},
 	XTOPT_TABLEEND,
 };
@@ -46,8 +45,14 @@ static void tls_parse(struct xt_option_call *cb)
 	xtables_option_parse(cb);
 	switch (cb->entry->id) {
 		case O_TLS_HOST:
+			info->op_flags |= XT_TLS_OP_HOST;
 			if (cb->invert)
-				info->invert |= XT_TLS_OP_HOST;
+				info->inversion_flags |= XT_TLS_OP_HOST;
+			break;
+		case O_TLS_HOSTSET:
+			info->op_flags |= XT_TLS_OP_HOSTSET;
+			if (cb->invert)
+				info->inversion_flags |= XT_TLS_OP_HOSTSET;
 			break;
 	}
 }
@@ -56,6 +61,9 @@ static void tls_check(struct xt_fcheck_call *cb)
 {
 	if (cb->xflags == 0)
 		xtables_error(PARAMETER_PROBLEM, "TLS: no tls option specified");
+	if ((cb->xflags & O_TLS_HOST) && (cb->xflags & O_TLS_HOSTSET))
+		xtables_error(PARAMETER_PROBLEM, 
+			"TLS: --tls-host and --tls-hostset options can't be specified together");
 }
 
 static void tls_print(const void *ip, const struct xt_entry_match *match, int numeric)
@@ -63,16 +71,30 @@ static void tls_print(const void *ip, const struct xt_entry_match *match, int nu
 	const struct xt_tls_info *info = (const struct xt_tls_info *)match->data;
 
 	printf(" TLS match");
-	printf("%s --tls-host %s",
-				 (info->invert & XT_TLS_OP_HOST) ? " !":"", info->tls_host);
+	if (info->op_flags & XT_TLS_OP_HOST) {
+	    bool invert = info->inversion_flags & XT_TLS_OP_HOST;
+	    printf("%s --tls-host %s", invert ? " !":"", info->host_or_set_name);
+	}//if
+	
+	if (info->op_flags & XT_TLS_OP_HOSTSET) {
+	    bool invert = info->inversion_flags & XT_TLS_OP_HOSTSET;
+	    printf("%s --tls-hostset %s", invert ? " !":"", info->host_or_set_name);
+	}//if
 }
 
 static void tls_save(const void *ip, const struct xt_entry_match *match)
 {
 	const struct xt_tls_info *info = (const struct xt_tls_info *)match->data;
 
-	printf(" %s --tls-host %s",
-				 (info->invert & XT_TLS_OP_HOST) ? " !":"", info->tls_host);
+	if (info->op_flags & XT_TLS_OP_HOST) {
+	    bool invert = info->inversion_flags & XT_TLS_OP_HOST;
+	    printf(" %s --tls-host %s", invert ? " !":"", info->host_or_set_name);
+	}//if
+
+	if (info->op_flags & XT_TLS_OP_HOSTSET) {
+	    bool invert = info->inversion_flags & XT_TLS_OP_HOSTSET;
+	    printf(" %s --tls-hostset %s", invert ? " !":"", info->host_or_set_name);
+	}//if
 }
 
 static struct xtables_match tls_match = {

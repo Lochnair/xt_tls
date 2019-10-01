@@ -6,8 +6,9 @@
 
 /* target info */
 struct xt_tls_info {
-	__u8 invert;
-	char tls_host[255];
+	__u16 op_flags, inversion_flags;
+	char host_or_set_name[255];
+        __u32 hostset_index;
 };
 
 #define PROC_FS_MODULE_DIR "net/xt_tls"

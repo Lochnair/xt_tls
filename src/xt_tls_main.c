@@ -244,13 +244,18 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	char *parsed_host;
 	const struct xt_tls_info *info = par->matchinfo;
 	int result;
-	bool invert = (info->invert & XT_TLS_OP_HOST);
+	
+	int pattern_type = (info->op_flags & XT_TLS_OP_HOSTSET) ?
+	    XT_TLS_OP_HOSTSET : XT_TLS_OP_HOST;
+	bool invert = (pattern_type == XT_TLS_OP_HOSTSET) ?
+	    (info->inversion_flags & XT_TLS_OP_HOSTSET) :
+	    (info->inversion_flags & XT_TLS_OP_HOST);
 	bool match;
 
 	if ((result = get_tls_hostname(skb, &parsed_host)) != 0)
 		return false;
 
-	match = glob_match(info->tls_host, parsed_host);
+	match = glob_match(info->host_or_set_name, parsed_host);
 
 #ifdef XT_TLS_DEBUG
 	printk("[xt_tls] Parsed domain: %s\n", parsed_host);
