@@ -3,20 +3,23 @@
  * Host sets are implemented as simple binary trees of the host_set_elem
  */
 
+#define pr_fmt(fmt) "[" KBUILD_MODNAME "]: " fmt
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/proc_fs.h>
 #include <asm/errno.h>
+#include "xt_tls.h"
 #include "hostset.h"
+
+static struct file_operations proc_fops = {
+    
+};
 
 // Initialize a host set
 int hs_init(struct host_set *hs, const char *name)
 {
-#ifdef CONFIG_PROC_FS
-    struct proc_dir_entry *pde;
-    kuid_t uid = make_kuid(&init_user_ns, 0);
-    kgid_t gid = make_kgid(&init_user_ns, 0);
-#endif
+//    kuid_t uid = make_kuid(&init_user_ns, 0);
+//    kgid_t gid = make_kgid(&init_user_ns, 0);
     
     if (strlen(name) > MAX_HOST_SET_NAME_LEN)
 	return -EINVAL;
@@ -24,6 +27,13 @@ int hs_init(struct host_set *hs, const char *name)
     strcpy(hs->name, name);
     hs->refcount = 1;
     hs->hosts = NULL;
+    
+    hs->proc_file = proc_create_data(name, 0644, proc_fs_hostset_dir, 
+	    &proc_fops, &hs);
+    if (! hs->proc_file) {
+	return -EFAULT;
+    }//if
+//    proc_set_user(hs->proc_file, uid, gid);
     
     return 0;
 }//hs_init
@@ -33,7 +43,7 @@ int hs_init(struct host_set *hs, const char *name)
 void hs_free(struct host_set *hs)
 {
     if (hs->refcount && --hs->refcount == 0 && hs->hosts)
-	hse_free(hs->hosts);
+	hs_destroy(hs);
 }//hs_free
 
 
@@ -42,6 +52,7 @@ void hs_destroy(struct host_set *hs)
 {
     if (hs->refcount && hs->hosts) {
 	hs->refcount = 0;
+	proc_remove(hs->proc_file);
 	hse_free(hs->hosts);
     }//if
 }//hs_destroy

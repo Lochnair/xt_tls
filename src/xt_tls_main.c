@@ -24,6 +24,9 @@ MODULE_PARM_DESC(max_host_sets, "host set table capacity (default 8)");
 // The table of the host sets we use
 static struct host_set *host_set_table;
 
+// The proc-fs subdirectory for hostsets
+struct proc_dir_entry *proc_fs_hostset_dir;
+
 /*
  * Searches through skb->data and looks for a
  * client or server handshake. A client
@@ -312,6 +315,12 @@ static int __init tls_mt_init (void)
 	if (rc)
 	    return rc;
 	
+	proc_fs_hostset_dir = proc_mkdir("net/xt_tls/hostset", NULL);
+	if (! proc_fs_hostset_dir) {
+	    pr_err("Cannot create /proc/net/ subdirectory for this module");
+	    return -EFAULT;
+	}//if
+	
 	host_set_table = kmalloc(sizeof (struct host_set) * max_host_sets, GFP_KERNEL);
 	if (! host_set_table) {
 	    pr_err("Cannot allocate memory for the host set table");
@@ -335,6 +344,7 @@ static void __exit tls_mt_exit (void)
 	for (i = 0; i < max_host_sets; i++)
 	    hs_destroy(&host_set_table[i]);
 	kfree(host_set_table);
+	proc_remove(proc_fs_hostset_dir);
 #ifdef XT_TLS_DEBUG
 	pr_info("Host set table disposed");
 #endif
