@@ -318,17 +318,17 @@ static int __init tls_mt_init (void)
 	proc_fs_dir = proc_mkdir("net/"KBUILD_MODNAME, NULL);
 	proc_fs_hostset_dir = proc_mkdir("hostset", proc_fs_dir);
 	if (! proc_fs_hostset_dir) {
-	    pr_err("Cannot create /proc/net/ subdirectory for this module");
+	    pr_err("Cannot create /proc/net/ subdirectory for this module\n");
 	    return -EFAULT;
 	}//if
 	
 	host_set_table = kmalloc(sizeof (struct host_set) * max_host_sets, GFP_KERNEL);
 	if (! host_set_table) {
-	    pr_err("Cannot allocate memory for the host set table");
+	    pr_err("Cannot allocate memory for the host set table\n");
 	    return -ENOMEM;
 	}//if
 #ifdef XT_TLS_DEBUG
-	pr_info("Host set table allocated (%u elements max)", max_host_sets);
+	pr_info("Host set table allocated (%u elements max)\n", max_host_sets);
 #endif
 	
 	for (i = 0; i < max_host_sets; i++)
@@ -348,7 +348,7 @@ static void __exit tls_mt_exit (void)
 	proc_remove(proc_fs_hostset_dir);
 	proc_remove(proc_fs_dir);
 #ifdef XT_TLS_DEBUG
-	pr_info("Host set table disposed");
+	pr_info("Host set table disposed\n");
 #endif
 }
 
