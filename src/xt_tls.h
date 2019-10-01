@@ -10,7 +10,7 @@ struct xt_tls_info {
 	char tls_host[255];
 };
 
-//#define PROC_FS_HOSTSET_DIR "/proc/net/xt_tls/hostset"
+#define PROC_FS_HOSTSET_DIR "net/xt_tls/hostset"
 extern struct proc_dir_entry *proc_fs_hostset_dir;
 
 #endif /* _XT_TLS_TARGET_H */

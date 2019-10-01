@@ -315,7 +315,7 @@ static int __init tls_mt_init (void)
 	if (rc)
 	    return rc;
 	
-	proc_fs_hostset_dir = proc_mkdir("net/xt_tls/hostset", NULL);
+	proc_fs_hostset_dir = proc_mkdir(PROC_FS_HOSTSET_DIR, NULL);
 	if (! proc_fs_hostset_dir) {
 	    pr_err("Cannot create /proc/net/ subdirectory for this module");
 	    return -EFAULT;

@@ -19,7 +19,7 @@ static void tls_help(void)
 		"  [!] --tls-hostset hostset-name\n"
 		"  --tls-host and --tls-hostset are mutually exclusive\n"
 		"  The content of the hostset <HS> is accessible through "
-		    PROC_FS_HOSTSET_DIR "/<HS>\n"
+		    "/proc/"PROC_FS_HOSTSET_DIR "/<HS>\n"
 	);
 }
 
