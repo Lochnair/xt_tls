@@ -269,9 +269,11 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	return match;
 }
 
+
 static int tls_mt_check (const struct xt_mtchk_param *par)
 {
 	__u16 proto;
+	struct xt_tls_info *match_info = par->matchinfo;
 
 	if (par->family == NFPROTO_IPV4) {
 		proto = ((const struct ipt_ip *) par->entryinfo)->proto;
@@ -282,13 +284,56 @@ static int tls_mt_check (const struct xt_mtchk_param *par)
 	}
 
 	if (proto != IPPROTO_TCP) {
-		pr_info("Can be used only in combination with "
-			"-p tcp\n");
+		pr_info("Can be used only in combination with -p tcp\n");
 		return -EINVAL;
 	}
+	
+	// If the rule contains --tls-hostset, try to find an existing matching
+	// hostset table entry or allocate a new one
+	if (match_info->op_flags & XT_TLS_OP_HOSTSET) {
+	    int i;
+	    bool found = false;
+	    
+	    for (i = 0; i < max_host_sets; i++) {
+		found = !hs_is_free(&host_set_table[i]) && 
+		    strcmp(host_set_table[i].name, match_info->host_or_set_name) == 0;
+		if (found)
+		    break;
+	    }//for
+	    
+	    if (found) {
+		hs_hold(&host_set_table[i]);
+	    } else {
+		int rc;
+		for (i = 0; i < max_host_sets; i++) {
+		    found = hs_is_free(&host_set_table[i]);
+		    if (found)
+			break;
+		}//for
+		if (!found) {
+		    pr_err("Cannot add a new hostset: the hostset table is empty");
+		    return -ENOMEM;
+		}//if
+		rc = hs_init(&host_set_table[i], match_info->host_or_set_name);
+		if (rc)
+		    return rc;
+	    }//if
+	    
+	    match_info->hostset_index = i;
+	}//if
 
 	return 0;
 }
+
+
+static void tls_mt_destroy(const struct xt_mtdtor_param *par)
+{
+	struct xt_tls_info *match_info = par->matchinfo;
+	if (match_info->op_flags & XT_TLS_OP_HOSTSET) {
+	    hs_free(&host_set_table[match_info->hostset_index]);
+	}//if
+}//tls_mt_destroy
+
 
 static struct xt_match tls_mt_regs[] __read_mostly = {
 	{
@@ -296,6 +341,7 @@ static struct xt_match tls_mt_regs[] __read_mostly = {
 		.revision   = 1,
 		.family     = NFPROTO_IPV4,
 		.checkentry = tls_mt_check,
+		.destroy    = tls_mt_destroy,
 		.match      = tls_mt,
 		.matchsize  = sizeof(struct xt_tls_info),
 		.me         = THIS_MODULE,
@@ -306,6 +352,7 @@ static struct xt_match tls_mt_regs[] __read_mostly = {
 		.revision   = 1,
 		.family     = NFPROTO_IPV6,
 		.checkentry = tls_mt_check,
+		.destroy    = tls_mt_destroy,
 		.match      = tls_mt,
 		.matchsize  = sizeof(struct xt_tls_info),
 		.me         = THIS_MODULE,

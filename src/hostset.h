@@ -26,6 +26,8 @@ struct host_set {
 
 // Initialize a host set
 int hs_init(struct host_set *hs, const char *name);
+// Increment the usage count for the host set
+static inline void hs_hold(struct host_set *hs) { hs->refcount++; }
 // Free a host set entry (taking into account its refcount)
 void hs_free(struct host_set *hs);
 // Free a host set entry (unconditionally)
