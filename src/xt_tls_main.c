@@ -329,6 +329,10 @@ static int tls_mt_check (const struct xt_mtchk_param *par)
 static void tls_mt_destroy(const struct xt_mtdtor_param *par)
 {
 	struct xt_tls_info *match_info = par->matchinfo;
+#ifdef XT_TLS_DEBUG
+	pr_info("tls_mt_destroy: match_info: op_flags=0x%X, hostset_index=%u\n", 
+		match_info->op_flags, match_info->hostset_index);
+#endif
 	if (match_info->op_flags & XT_TLS_OP_HOSTSET) {
 	    hs_free(&host_set_table[match_info->hostset_index]);
 	}//if
