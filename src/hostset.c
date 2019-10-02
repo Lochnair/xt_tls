@@ -43,7 +43,7 @@ int hs_init(struct host_set *hs, const char *name)
 // Free a host set entry (taking into account its refcount)
 void hs_free(struct host_set *hs)
 {
-    if (hs->refcount && --hs->refcount == 0 && hs->hosts)
+    if (hs->refcount && --hs->refcount == 0)
 	hs_destroy(hs);
 }//hs_free
 
@@ -51,10 +51,11 @@ void hs_free(struct host_set *hs)
 // Free a host set entry (unconditionally)
 void hs_destroy(struct host_set *hs)
 {
-    if (hs->refcount && hs->hosts) {
+    if (hs->refcount) {
 	hs->refcount = 0;
 	proc_remove(hs->proc_file);
-	hse_free(hs->hosts);
+	if (hs->hosts)
+	    hse_free(hs->hosts);
     }//if
 }//hs_destroy
 
