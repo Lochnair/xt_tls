@@ -11,7 +11,7 @@ struct xt_tls_info {
         __s32 hostset_index;
 };
 
-#define PROC_FS_MODULE_DIR "net/xt_tls"
+#define PROC_FS_MODULE_DIR "xt_tls"
 #define PROC_FS_HOSTSET_SUBDIR "hostset"
 extern struct proc_dir_entry *proc_fs_hostset_dir;
 

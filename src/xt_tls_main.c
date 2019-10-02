@@ -360,6 +360,32 @@ static struct xt_match tls_mt_regs[] __read_mostly = {
 #endif
 };
 
+
+static int __net_init tls_net_init(struct net *net)
+{
+    proc_fs_dir = proc_mkdir(KBUILD_MODNAME, net->proc_net);
+    proc_fs_hostset_dir = proc_mkdir(PROC_FS_HOSTSET_SUBDIR, proc_fs_dir);
+    if (! proc_fs_hostset_dir) {
+	pr_err("Cannot create /proc/net/ subdirectory for this module\n");
+	return -EFAULT;
+    }//if
+    return 0;
+}//tls_net_init
+
+
+static void __net_exit tls_net_exit(struct net *net)
+{
+    proc_remove(proc_fs_hostset_dir);
+    proc_remove(proc_fs_dir);
+}//tls_net_exit
+
+
+static struct pernet_operations tls_net_ops = {
+    .init = tls_net_init,
+    .exit = tls_net_exit,
+};
+
+
 static int __init tls_mt_init (void)
 {
 	int i;
@@ -367,11 +393,10 @@ static int __init tls_mt_init (void)
 	if (rc)
 	    return rc;
 	
-	proc_fs_dir = proc_mkdir(PROC_FS_MODULE_DIR, NULL);
-	proc_fs_hostset_dir = proc_mkdir(PROC_FS_HOSTSET_SUBDIR, proc_fs_dir);
-	if (! proc_fs_hostset_dir) {
-	    pr_err("Cannot create /proc/net/ subdirectory for this module\n");
-	    return -EFAULT;
+	rc = register_pernet_subsys(&tls_net_ops);
+	if (rc) {
+	    pr_err("Cannot register pernet subsys");
+	    return rc;
 	}//if
 	
 	host_set_table = kmalloc(sizeof (struct host_set) * max_host_sets, GFP_KERNEL);
@@ -397,8 +422,7 @@ static void __exit tls_mt_exit (void)
 	for (i = 0; i < max_host_sets; i++)
 	    hs_destroy(&host_set_table[i]);
 	kfree(host_set_table);
-	proc_remove(proc_fs_hostset_dir);
-	proc_remove(proc_fs_dir);
+	unregister_pernet_subsys(&tls_net_ops);
 #ifdef XT_TLS_DEBUG
 	pr_info("Host set table disposed\n");
 #endif
