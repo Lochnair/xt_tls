@@ -47,7 +47,7 @@ int hs_init(struct host_set *hs, const char *name)
 static void hs_flush(struct host_set *hs)
 {
     struct host_set_elem *hosts;
-    write_lock(&hs_lock);
+    write_lock_bh(&hs_lock);
     hosts = hs->hosts;
     hs->hosts = NULL;
     write_unlock_bh(&hs_lock);
