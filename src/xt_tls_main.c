@@ -311,7 +311,7 @@ static int tls_mt_check (const struct xt_mtchk_param *par)
 			break;
 		}//for
 		if (!found) {
-		    pr_err("Cannot add a new hostset: the hostset table is empty");
+		    pr_err("Cannot add a new hostset: the hostset table is full\n");
 		    return -ENOMEM;
 		}//if
 		rc = hs_init(&host_set_table[i], match_info->host_or_set_name);
@@ -395,7 +395,7 @@ static int __init tls_mt_init (void)
 	
 	rc = register_pernet_subsys(&tls_net_ops);
 	if (rc) {
-	    pr_err("Cannot register pernet subsys");
+	    pr_err("Cannot register pernet subsys\n");
 	    return rc;
 	}//if
 	
