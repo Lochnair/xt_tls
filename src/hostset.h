@@ -36,6 +36,3 @@ void hs_destroy(struct host_set *hs);
 static inline bool hs_is_free(struct host_set *hs) { return hs->refcount == 0; }
 // Zeroize a host set entry (mark it unused)
 static inline void hs_zeroize(struct host_set *hs) { hs->refcount = 0; }
-
-// Free a host element tree
-void hse_free(struct host_set_elem *hse);

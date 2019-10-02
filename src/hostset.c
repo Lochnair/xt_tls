@@ -11,11 +11,12 @@
 #include "xt_tls.h"
 #include "hostset.h"
 
-static DEFINE_SPINLOCK(hs_lock);
+static DEFINE_RWLOCK(hs_lock);
 
 static struct file_operations proc_fops = {
     
 };
+static void hse_free(struct host_set_elem *hse);
 
 // Initialize a host set
 int hs_init(struct host_set *hs, const char *name)
@@ -45,10 +46,14 @@ int hs_init(struct host_set *hs, const char *name)
 // Empty the content of the host set
 static void hs_flush(struct host_set *hs)
 {
-    if (hs->hosts) {
-	hse_free(hs->hosts);
-	hs->hosts = NULL;
-    }//if
+    struct host_set_elem *hosts;
+    write_lock(&hs_lock);
+    hosts = hs->hosts;
+    hs->hosts = NULL;
+    write_unlock_bh(&hs_lock);
+    
+    if (hosts)
+	hse_free(hosts);
 }//hs_flush
 
 
@@ -77,19 +82,11 @@ void hs_free(struct host_set *hs)
 
 
 // Free a host element tree
-void hse_free(struct host_set_elem *hse)
+static void hse_free(struct host_set_elem *hse)
 {
-    struct host_set_elem *left_child, *right_child;
-    spin_lock_bh(&hs_lock);
-    left_child = hse->left_child;
-    hse->left_child = 0;
-    right_child = hse->right_child;
-    hse->right_child = 0;
-    spin_unlock_bh(&hs_lock);
-    
-    if (left_child)
-	hse_free(left_child);
-    if (right_child)
-	hse_free(right_child);
+    if (hse->left_child)
+	hse_free(hse->left_child);
+    if (hse->right_child)
+	hse_free(hse->right_child);
     kfree(hse);
 }//hse_free
