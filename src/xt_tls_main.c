@@ -400,12 +400,15 @@ static int __init tls_mt_init (void)
 	rc = register_pernet_subsys(&tls_net_ops);
 	if (rc) {
 	    pr_err("Cannot register pernet subsys\n");
+	    xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+	    unregister_pernet_subsys(&tls_net_ops);
 	    return rc;
 	}//if
 	
 	host_set_table = kmalloc(sizeof (struct host_set) * max_host_sets, GFP_KERNEL);
 	if (! host_set_table) {
 	    pr_err("Cannot allocate memory for the host set table\n");
+	    xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
 	    return -ENOMEM;
 	}//if
 #ifdef XT_TLS_DEBUG
