@@ -255,7 +255,14 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	if ((result = get_tls_hostname(skb, &parsed_host)) != 0)
 		return false;
 
-	match = glob_match(info->host_or_set_name, parsed_host);
+	switch (pattern_type) {
+	    case XT_TLS_OP_HOST:
+		match = glob_match(info->host_or_set_name, parsed_host);
+		break;
+	    case XT_TLS_OP_HOSTSET:
+		match = hs_lookup(&host_set_table[info->hostset_index], parsed_host);
+		break;
+	}//switch
 
 #ifdef XT_TLS_DEBUG
 	printk("[xt_tls] Parsed domain: %s\n", parsed_host);
