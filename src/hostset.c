@@ -14,12 +14,15 @@
 
 static DEFINE_RWLOCK(hs_lock);
 
-static struct file_operations proc_fops = {
-    
-};
-
 static void hse_free(struct host_set_elem *hse);
 static void strrev(char *dst, const char *src);
+static ssize_t proc_file_read(struct file * file, char __user * buf, 
+	                      size_t size, loff_t * ppos);
+
+static struct file_operations proc_fops = {
+    .owner = THIS_MODULE,
+    .read = proc_file_read,
+};
 
 // Initialize a host set
 int hs_init(struct host_set *hs, const char *name)
@@ -125,6 +128,7 @@ bool hs_lookup(struct host_set *hs, const char *hostname)
     return result;
 }//hs_lookup
 
+
 // Reverse a string
 static void strrev(char *dst, const char *src)
 {
@@ -134,3 +138,15 @@ static void strrev(char *dst, const char *src)
 	*pd++ = *ps;
     *pd = '\0';
 }//strrev
+
+
+// Implementation of the read operation for the hostset proc-file
+static ssize_t proc_file_read(struct file *filp, char __user *buf, 
+	                      size_t count, loff_t *offs)
+{
+    struct host_set *hs = PDE_DATA(file_inode(filp));
+    if (! hs->hosts)
+	return 0;
+    
+    return 0;
+}//proc_file_read

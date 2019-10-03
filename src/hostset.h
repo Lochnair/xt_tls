@@ -10,6 +10,10 @@
 // Host set element holding a single host name
 struct host_set_elem {
     struct host_set_elem *left_child, *right_child;
+    __u16 left_depth, right_depth; // the depths of the child branches 
+                                   // (in elements, for the tree balancing)
+    loff_t start_pos, end_pos; //the start and end positions of this elements 
+                               //in the linearized hostset representations (in chars)
     char name[]; //the host name (stringz)
 };//host_set_elem
 
