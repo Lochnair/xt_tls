@@ -121,6 +121,7 @@ bool hs_lookup(struct host_set *hs, const char *hostname)
     
     if (! read_trylock(&hs_lock))
 	return false;
+    read_unlock(&hs_lock);
     
     read_lock_bh(&hs_lock);
     result = _hs_lookup(hs->hosts, pattern);
