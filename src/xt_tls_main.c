@@ -13,8 +13,8 @@
 #include <asm/errno.h>
 
 #include "compat.h"
-#include "hostset.h"
 #include "xt_tls.h"
+#include "hostset.h"
 
 // The maximum number of host sets
 static int max_host_sets = 8;

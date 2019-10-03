@@ -8,6 +8,7 @@
 #include <linux/string.h>
 #include <linux/proc_fs.h>
 #include <asm/errno.h>
+
 #include "xt_tls.h"
 #include "hostset.h"
 
@@ -16,7 +17,9 @@ static DEFINE_RWLOCK(hs_lock);
 static struct file_operations proc_fops = {
     
 };
+
 static void hse_free(struct host_set_elem *hse);
+static void strrev(char *dst, const char *src);
 
 // Initialize a host set
 int hs_init(struct host_set *hs, const char *name)
@@ -24,7 +27,7 @@ int hs_init(struct host_set *hs, const char *name)
     kuid_t uid = make_kuid(&init_user_ns, 0);
     kgid_t gid = make_kgid(&init_user_ns, 0);
     
-    if (strlen(name) > MAX_HOST_SET_NAME_LEN)
+    if (strlen(name) > MAX_HOSTSET_NAME_LEN)
 	return -EINVAL;
 
     strcpy(hs->name, name);
@@ -106,13 +109,28 @@ static bool _hs_lookup(struct host_set_elem *hse, const char *hostname)
 bool hs_lookup(struct host_set *hs, const char *hostname)
 {
     bool result;
+    char pattern[MAX_HOSTNAME_LEN + 1];
+    
     if (! hs->hosts)
 	return false;
+    
+    strrev(pattern, hostname);
+    
     if (! read_trylock(&hs_lock))
 	return false;
     
     read_lock_bh(&hs_lock);
-    result = _hs_lookup(hs->hosts, hostname);
+    result = _hs_lookup(hs->hosts, pattern);
     read_unlock_bh(&hs_lock);
     return result;
 }//hs_lookup
+
+// Reverse a string
+static void strrev(char *dst, const char *src)
+{
+    const char *ps = src + strlen(src);
+    char *pd = dst;
+    while (ps-- > src)
+	*pd++ = *ps;
+    *pd = '\0';
+}//strrev
