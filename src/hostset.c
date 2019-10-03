@@ -141,12 +141,26 @@ static void strrev(char *dst, const char *src)
 
 
 // Implementation of the read operation for the hostset proc-file
+static ssize_t walk_hs_tree(struct host_set_elem *hse, char **bufptr, 
+	                    size_t *pcount, loff_t *offs)
+{
+    return 0;
+}//walk_hs_tree
+
 static ssize_t proc_file_read(struct file *filp, char __user *buf, 
 	                      size_t count, loff_t *offs)
 {
+    char *linbuf, *bufptr;
     struct host_set *hs = PDE_DATA(file_inode(filp));
+    ssize_t chars_read;
     if (! hs->hosts)
 	return 0;
+
+    bufptr = linbuf = kmalloc(count, GFP_KERNEL);
+    read_lock_bh(&hs_lock);
+    chars_read = walk_hs_tree(hs->hosts, &bufptr, &count, offs);
+    read_unlock_bh(&hs_lock);
+    kfree(linbuf);
     
-    return 0;
+    return chars_read;
 }//proc_file_read
