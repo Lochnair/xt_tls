@@ -90,3 +90,29 @@ static void hse_free(struct host_set_elem *hse)
 	hse_free(hse->right_child);
     kfree(hse);
 }//hse_free
+
+
+// Lookup the host set for the specifed host name
+static bool _hs_lookup(struct host_set_elem *hse, const char *hostname)
+{
+    int cmp = strcmp(hostname, hse->name);
+    if (cmp < 0)
+	return hse->left_child && _hs_lookup(hse->left_child, hostname);
+    if (cmp > 0)
+	return hse->right_child && _hs_lookup(hse->right_child, hostname);
+    return true;
+}//_hs_lookup
+
+bool hs_lookup(struct host_set *hs, const char *hostname)
+{
+    bool result;
+    if (! hs->hosts)
+	return false;
+    if (! read_trylock(&hs_lock))
+	return false;
+    
+    read_lock_bh(&hs_lock);
+    result = _hs_lookup(hs->hosts, hostname);
+    read_unlock_bh(&hs_lock);
+    return result;
+}//hs_lookup
