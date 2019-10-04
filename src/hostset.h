@@ -3,15 +3,15 @@
  * Host sets are implemented as simple binary trees of the host_set_elem
  */
 
+#include <linux/rbtree.h>
+
 #ifndef CONFIG_PROC_FS
 #error "XT_TLS requires proc filesystem support enabled in the kernel"
 #endif
 
 // Host set element holding a single host name
 struct host_set_elem {
-    struct host_set_elem *left_child, *right_child;
-    __u16 left_depth, right_depth; // the depths of the child branches 
-                                   // (in elements, for the tree balancing)
+    struct rb_node rbnode;
     loff_t start_pos, end_pos; //the start and end positions of this elements 
                                //in the linearized hostset representations (in chars)
     char name[]; //the host name (stringz)
@@ -22,7 +22,7 @@ struct host_set_elem {
 struct host_set {
     __u32 refcount; // reference count: increased by 1 with each rule using this set
     char name[MAX_HOSTSET_NAME_LEN + 1];  //the set name (stringz)
-    struct host_set_elem *hosts;
+    struct rb_root hosts;
     struct proc_dir_entry *proc_file;
 };//host_set
 

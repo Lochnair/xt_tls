@@ -35,7 +35,7 @@ int hs_init(struct host_set *hs, const char *name)
 
     strcpy(hs->name, name);
     hs->refcount = 1;
-    hs->hosts = NULL;
+    hs->hosts = RB_ROOT;
     
     hs->proc_file = proc_create_data(name, 0644, proc_fs_hostset_dir, 
 	    &proc_fops, &hs);
@@ -52,14 +52,15 @@ int hs_init(struct host_set *hs, const char *name)
 // Empty the content of the host set
 static void hs_flush(struct host_set *hs)
 {
-    struct host_set_elem *hosts;
+    struct rb_root hosts;
     write_lock_bh(&hs_lock);
     hosts = hs->hosts;
-    hs->hosts = NULL;
+    //RB_EMPTY_ROOT(hs->hosts);
+    hs->hosts = RB_ROOT;
     write_unlock_bh(&hs_lock);
     
-    if (hosts)
-	hse_free(hosts);
+    if (hosts.rb_node)
+	hse_free((struct host_set_elem *)hosts.rb_node);
 }//hs_flush
 
 
@@ -90,31 +91,22 @@ void hs_free(struct host_set *hs)
 // Free a host element tree
 static void hse_free(struct host_set_elem *hse)
 {
-    if (hse->left_child)
-	hse_free(hse->left_child);
-    if (hse->right_child)
-	hse_free(hse->right_child);
+    if (hse->rbnode.rb_left)
+	hse_free((struct host_set_elem *)hse->rbnode.rb_left);
+    if (hse->rbnode.rb_right)
+	hse_free((struct host_set_elem *)hse->rbnode.rb_right);
     kfree(hse);
 }//hse_free
 
 
 // Lookup the host set for the specifed host name
-static bool _hs_lookup(struct host_set_elem *hse, const char *hostname)
-{
-    int cmp = strcmp(hostname, hse->name);
-    if (cmp < 0)
-	return hse->left_child && _hs_lookup(hse->left_child, hostname);
-    if (cmp > 0)
-	return hse->right_child && _hs_lookup(hse->right_child, hostname);
-    return true;
-}//_hs_lookup
-
 bool hs_lookup(struct host_set *hs, const char *hostname)
 {
-    bool result;
+    bool result = false;
     char pattern[MAX_HOSTNAME_LEN + 1];
+    struct rb_node *node;
     
-    if (! hs->hosts)
+    if (! hs->hosts.rb_node)
 	return false;
     
     strrev(pattern, hostname);
@@ -124,7 +116,16 @@ bool hs_lookup(struct host_set *hs, const char *hostname)
     read_unlock(&hs_lock);
     
     read_lock_bh(&hs_lock);
-    result = _hs_lookup(hs->hosts, pattern);
+    for (node = hs->hosts.rb_node; ! result && node;) {
+	char *name = rb_entry(node, struct host_set_elem, name);
+	int cmp = strcmp(pattern, name);
+	if (cmp < 0)
+	    node = node->rb_left;
+	else if (cmp > 0)
+	    node = node->rb_right;
+	else
+	    result = true;
+    }//for
     read_unlock_bh(&hs_lock);
     return result;
 }//hs_lookup
@@ -142,24 +143,17 @@ static void strrev(char *dst, const char *src)
 
 
 // Implementation of the read operation for the hostset proc-file
-static ssize_t walk_hs_tree(struct host_set_elem *hse, char **bufptr, 
-	                    size_t *pcount, loff_t *offs)
-{
-    return 0;
-}//walk_hs_tree
-
 static ssize_t proc_file_read(struct file *filp, char __user *buf, 
 	                      size_t count, loff_t *offs)
 {
     char *linbuf, *bufptr;
     struct host_set *hs = PDE_DATA(file_inode(filp));
     ssize_t chars_read;
-    if (! hs->hosts)
+    if (! hs->hosts.rb_node)
 	return 0;
 
     bufptr = linbuf = kmalloc(count, GFP_KERNEL);
     read_lock_bh(&hs_lock);
-    chars_read = walk_hs_tree(hs->hosts, &bufptr, &count, offs);
     read_unlock_bh(&hs_lock);
     kfree(linbuf);
     
