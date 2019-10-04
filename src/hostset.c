@@ -117,8 +117,8 @@ bool hs_lookup(struct host_set *hs, const char *hostname)
     
     read_lock_bh(&hs_lock);
     for (node = hs->hosts.rb_node; ! result && node;) {
-	char *name = rb_entry(node, struct host_set_elem, name);
-	int cmp = strcmp(pattern, name);
+	struct host_set_elem *hse = rb_entry(node, struct host_set_elem, rbnode);
+	int cmp = strcmp(pattern, hse->name);
 	if (cmp < 0)
 	    node = node->rb_left;
 	else if (cmp > 0)
