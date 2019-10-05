@@ -23,7 +23,7 @@ static struct file_operations proc_fops = {
     .owner = THIS_MODULE,
     .open = seq_file_open,
     .read = seq_read,
-    .release = seq_release_private,
+//    .release = seq_release_private,
 };
 
 // Initialize a host set
@@ -203,11 +203,5 @@ static const struct seq_operations seq_ops = {
 
 static int seq_file_open(struct inode *inode, struct file *file)
 {
-    struct host_set *hs = PDE_DATA(inode);
-    struct host_set **private = __seq_open_private(file, &seq_ops, sizeof(hs));
-    if (! private)
-	return -ENOMEM;
-    
-    *private = hs;
-    return 0;
+    return seq_open(file, &seq_ops);
 }//seq_file_open
