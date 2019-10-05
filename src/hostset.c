@@ -7,7 +7,8 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/proc_fs.h>
-#include <linux/uaccess.h>
+#include <linux/seq_file.h>
+//#include <linux/uaccess.h>
 #include <asm/errno.h>
 
 #include "xt_tls.h"
@@ -17,12 +18,12 @@ static DEFINE_RWLOCK(hs_lock);
 
 static void hse_free(struct host_set_elem *hse);
 static void strrev(char *dst, const char *src);
-static ssize_t proc_file_read(struct file * file, char __user * buf, 
-	                      size_t size, loff_t * ppos);
+static int seq_file_open(struct inode *inode, struct file *file);
 
 static struct file_operations proc_fops = {
     .owner = THIS_MODULE,
-    .read = proc_file_read,
+    .open = seq_file_open,
+    .read = seq_read,
 };
 
 // Initialize a host set
@@ -142,31 +143,72 @@ static void strrev(char *dst, const char *src)
 }//strrev
 
 
-// Implementation of the read operation for the hostset proc-file
-static ssize_t walk_hs_tree(struct host_set_elem *hse, char **bufptr, 
-	                    size_t *pcount, loff_t *offs)
-{
-    return 0;
-}//walk_hs_tree
+// Implementation of the read/write operations for the hostset proc-file
 
-static ssize_t proc_file_read(struct file *filp, char __user *buf, 
-	                      size_t count, loff_t *offs)
+// Sequential proc file reading operations (callbacks)
+static void *seq_read_start(struct seq_file *seq, loff_t *pos)
+    __acquires(hs_lock)
 {
-    char *linbuf, *bufptr;
-    size_t curcount = count;
-    struct host_set *hs = PDE_DATA(file_inode(filp));
-    ssize_t chars_read;
-    if (! hs->hosts.rb_node)
-	return 0;
+    const struct host_set *hs = seq->private;
+    struct rb_node *node;
+    loff_t p = *pos;
 
-    bufptr = linbuf = kmalloc(count, GFP_KERNEL);
     read_lock_bh(&hs_lock);
-    chars_read = walk_hs_tree(rb_entry(hs->hosts.rb_node, struct host_set_elem, rbnode),
-	    &bufptr, &curcount, offs);
+
+    for (node = rb_first(&hs->hosts); node; node = rb_next(node)) {
+	if (p-- == 0)
+	    return node;
+    }//for
+
+    return NULL;
+}//*seq_read_start
+
+
+static void *seq_read_next(struct seq_file *seq, void *v, loff_t *pos)
+{
+    struct rb_node *node = rb_next(v);
+    if (node)
+	(*pos)++;
+    return node;
+}//seq_read_next
+
+
+static void seq_read_stop(struct seq_file *seq, void *v)
+    __releases(hs_lock)
+{
     read_unlock_bh(&hs_lock);
-    if (chars_read)
-	copy_to_user(buf, linbuf, chars_read);
-    kfree(linbuf);
+}//seq_read_stop
+
+
+static int seq_read_show(struct seq_file *seq, void *v)
+{
+    const struct host_set_elem *hse = rb_entry(v, struct host_set_elem, rbnode);
+    const char *p = hse->name + strlen(hse->name);
     
-    return chars_read;
-}//proc_file_read
+    while (--p >= hse->name)
+        seq_putc(seq, *p);
+    
+    seq_putc(seq, '\n');
+    return 0;
+}//seq_read_show
+
+
+static const struct seq_operations seq_ops = {
+    .start          = seq_read_start,
+    .next           = seq_read_next,
+    .stop           = seq_read_stop,
+    .show           = seq_read_show,
+};
+
+
+static int seq_file_open(struct inode *inode, struct file *file)
+{
+    struct host_set *hs = PDE_DATA(inode);
+    int rc = seq_open(file, &seq_ops);
+    struct seq_file *seq = file->private_data;
+    if (rc)
+	return rc;
+    
+    seq->private = hs;
+    return 0;
+}//seq_file_open
