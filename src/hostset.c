@@ -204,11 +204,10 @@ static const struct seq_operations seq_ops = {
 static int seq_file_open(struct inode *inode, struct file *file)
 {
     struct host_set *hs = PDE_DATA(inode);
-    int rc = seq_open_private(file, &seq_ops, sizeof(hs));
-    struct seq_file *seq = file->private_data;
-    if (rc)
-	return rc;
+    struct host_set **private = __seq_open_private(file, &seq_ops, sizeof(hs));
+    if (! private)
+	return -ENOMEM;
     
-    seq->private = hs;
+    *private = hs;
     return 0;
 }//seq_file_open
