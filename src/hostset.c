@@ -23,7 +23,6 @@ static struct file_operations proc_fops = {
     .owner = THIS_MODULE,
     .open = seq_file_open,
     .read = seq_read,
-//    .release = seq_release_private,
 };
 
 // Initialize a host set
@@ -205,3 +204,37 @@ static int seq_file_open(struct inode *inode, struct file *file)
 {
     return seq_open(file, &seq_ops);
 }//seq_file_open
+
+
+static ssize_t
+proc_write(struct file *file, const char __user *input, size_t size, loff_t *loff)
+{
+    struct host_set *hs = PDE_DATA(file_inode(file));
+    char buf[MAX_HOSTNAME_LEN + 2];
+
+    if (size == 0)
+	return 0;
+    if (size > sizeof(buf))
+	size = sizeof(buf);
+    if (copy_from_user(buf, input, size) != 0)
+	return -EFAULT;
+
+    /* Strict protocol! */
+    if (*loff != 0)
+	return -ESPIPE;
+    
+    switch (buf[0]) {
+    case '/': /* flush table */
+	hs_flush(hs);
+	return size;
+    case '-': /* remove hostname */
+	hs_remove_hostname(hs, buf + 1);
+	return size;
+    case '+': /* add hostname */
+	hs_add_hostname(hs, buf + 1);
+	return size;
+    default:
+	pr_err("The first by must be an opcode: '+' to add a hostname, '-' to remove and '/' to flush the entire set\n");
+	return -EINVAL;
+    }//switch
+}//proc_write
