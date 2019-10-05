@@ -63,6 +63,7 @@ static struct host_set_elem *hse_create(const char *hostname)
 	return NULL;
     
     RB_CLEAR_NODE(&hse->rbnode);
+    hse->rbnode.rb_left = hse->rbnode.rb_right = NULL;
     strrev(hse->name, hostname);
     return hse;
 }//hse_create
