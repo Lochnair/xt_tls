@@ -7,6 +7,7 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/proc_fs.h>
+#include <linux/uaccess.h>
 #include <linux/seq_file.h>
 #include <asm/errno.h>
 
@@ -18,11 +19,14 @@ static DEFINE_RWLOCK(hs_lock);
 static void hse_free(struct host_set_elem *hse);
 static void strrev(char *dst, const char *src);
 static int seq_file_open(struct inode *inode, struct file *file);
+static ssize_t
+proc_write(struct file *file, const char __user *input, size_t size, loff_t *loff);
 
 static struct file_operations proc_fops = {
     .owner = THIS_MODULE,
     .open = seq_file_open,
     .read = seq_read,
+    .write = proc_write,
 };
 
 // Initialize a host set
@@ -206,11 +210,24 @@ static int seq_file_open(struct inode *inode, struct file *file)
 }//seq_file_open
 
 
+static int hs_add_hostname(struct host_set *hs, const char *hostname)
+{
+    return 0;
+}//hs_add_hostname
+
+
+static int hs_remove_hostname(struct host_set *hs, const char *hostname)
+{
+    return 0;
+}//hs_remove_hostname
+
+
 static ssize_t
 proc_write(struct file *file, const char __user *input, size_t size, loff_t *loff)
 {
     struct host_set *hs = PDE_DATA(file_inode(file));
     char buf[MAX_HOSTNAME_LEN + 2];
+    int rc;
 
     if (size == 0)
 	return 0;
@@ -228,10 +245,14 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
 	hs_flush(hs);
 	return size;
     case '-': /* remove hostname */
-	hs_remove_hostname(hs, buf + 1);
+	rc = hs_remove_hostname(hs, buf + 1);
+	if (rc < 0)
+	    return rc;
 	return size;
     case '+': /* add hostname */
-	hs_add_hostname(hs, buf + 1);
+	rc = hs_add_hostname(hs, buf + 1);
+	if (rc < 0)
+	    return rc;
 	return size;
     default:
 	pr_err("The first by must be an opcode: '+' to add a hostname, '-' to remove and '/' to flush the entire set\n");
