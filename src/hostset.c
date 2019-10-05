@@ -8,7 +8,6 @@
 #include <linux/string.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
-//#include <linux/uaccess.h>
 #include <asm/errno.h>
 
 #include "xt_tls.h"
@@ -24,6 +23,7 @@ static struct file_operations proc_fops = {
     .owner = THIS_MODULE,
     .open = seq_file_open,
     .read = seq_read,
+    .release = seq_release_private,
 };
 
 // Initialize a host set

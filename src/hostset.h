@@ -12,8 +12,6 @@
 // Host set element holding a single host name
 struct host_set_elem {
     struct rb_node rbnode;
-    loff_t start_pos, end_pos; //the start and end positions of this elements 
-                               //in the linearized hostset representations (in chars)
     char name[]; //the host name (stringz)
 };//host_set_elem
 
