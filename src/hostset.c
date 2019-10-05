@@ -149,7 +149,7 @@ static void strrev(char *dst, const char *src)
 static void *seq_read_start(struct seq_file *seq, loff_t *pos)
     __acquires(hs_lock)
 {
-    const struct host_set *hs = seq->private;
+    const struct host_set *hs = seq->file->private_data;
     struct rb_node *node;
     loff_t p = *pos;
 
