@@ -54,6 +54,69 @@ int hs_init(struct host_set *hs, const char *name)
 }//hs_init
 
 
+// Create a new hostset element in the heap
+static struct host_set_elem *hse_create(const char *hostname)
+{
+    struct host_set_elem *hse = 
+	kmalloc(sizeof(struct host_set_elem) + strlen(hostname), GFP_KERNEL);
+    if (! hse)
+	return NULL;
+    
+    RB_CLEAR_NODE(&hse->rbnode);
+    strrev(hse->name, hostname);
+    return hse;
+}//hse_create
+
+
+// Add a hostname to this set
+static int hs_add_hostname(struct host_set *hs, const char *hostname)
+{
+    struct rb_node **link = &hs->hosts.rb_node, *parent = *link;
+    struct host_set_elem *new_elem;
+    bool already_have= false;
+    
+    new_elem = hse_create(hostname);
+    if (! new_elem) {
+	pr_err("Cannot allocate memory for a new hostmnamr\n");
+	return -ENOMEM;
+    }//if
+    write_lock_bh(&hs_lock);
+    
+    while (*link) {
+	struct host_set_elem *hse = rb_entry(*link, struct host_set_elem, rbnode);
+	int cmp = strcmp(new_elem->name, hse->name);
+	parent = *link;
+	if (cmp < 0)
+	    link = &(*link)->rb_left;
+	else if (cmp > 0)
+	    link = &(*link)->rb_right;
+	else {
+	    already_have = true;
+	    break;
+	}//if
+    }//while
+
+    if (! already_have) {
+	rb_link_node(&new_elem->rbnode, parent, link);
+	rb_insert_color(&new_elem->rbnode, &hs->hosts);	
+    }//if
+    
+    write_unlock_bh(&hs_lock);
+    
+    if (already_have)
+	kfree(new_elem);
+    
+    return 0;
+}//hs_add_hostname
+
+
+// Remove a hostname from this set
+static int hs_remove_hostname(struct host_set *hs, const char *hostname)
+{
+    return 0;
+}//hs_remove_hostname
+
+
 // Empty the content of the host set
 static void hs_flush(struct host_set *hs)
 {
@@ -210,18 +273,6 @@ static int seq_file_open(struct inode *inode, struct file *file)
 }//seq_file_open
 
 
-static int hs_add_hostname(struct host_set *hs, const char *hostname)
-{
-    return 0;
-}//hs_add_hostname
-
-
-static int hs_remove_hostname(struct host_set *hs, const char *hostname)
-{
-    return 0;
-}//hs_remove_hostname
-
-
 static ssize_t
 proc_write(struct file *file, const char __user *input, size_t size, loff_t *loff)
 {
@@ -255,7 +306,7 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
 	    return rc;
 	return size;
     default:
-	pr_err("The first by must be an opcode: '+' to add a hostname, '-' to remove and '/' to flush the entire set\n");
+	pr_err("The first char must be an opcode: '+' to add a hostname, '-' to remove and '/' to flush the entire set\n");
 	return -EINVAL;
     }//switch
 }//proc_write
