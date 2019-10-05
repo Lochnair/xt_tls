@@ -7,6 +7,7 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/proc_fs.h>
+#include <linux/uaccess.h>
 #include <asm/errno.h>
 
 #include "xt_tls.h"
@@ -55,7 +56,6 @@ static void hs_flush(struct host_set *hs)
     struct rb_root hosts;
     write_lock_bh(&hs_lock);
     hosts = hs->hosts;
-    //RB_EMPTY_ROOT(hs->hosts);
     hs->hosts = RB_ROOT;
     write_unlock_bh(&hs_lock);
     
@@ -136,7 +136,7 @@ static void strrev(char *dst, const char *src)
 {
     const char *ps = src + strlen(src);
     char *pd = dst;
-    while (ps-- > src)
+    while (ps-- >= src)
 	*pd++ = *ps;
     *pd = '\0';
 }//strrev
@@ -153,6 +153,7 @@ static ssize_t proc_file_read(struct file *filp, char __user *buf,
 	                      size_t count, loff_t *offs)
 {
     char *linbuf, *bufptr;
+    size_t curcount = count;
     struct host_set *hs = PDE_DATA(file_inode(filp));
     ssize_t chars_read;
     if (! hs->hosts.rb_node)
@@ -160,7 +161,11 @@ static ssize_t proc_file_read(struct file *filp, char __user *buf,
 
     bufptr = linbuf = kmalloc(count, GFP_KERNEL);
     read_lock_bh(&hs_lock);
+    chars_read = walk_hs_tree(rb_entry(hs->hosts.rb_node, struct host_set_elem, rbnode),
+	    &bufptr, &curcount, offs);
     read_unlock_bh(&hs_lock);
+    if (chars_read)
+	copy_to_user(buf, linbuf, chars_read);
     kfree(linbuf);
     
     return chars_read;
