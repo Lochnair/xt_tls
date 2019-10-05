@@ -128,7 +128,7 @@ static void hs_flush(struct host_set *hs)
     write_unlock_bh(&hs_lock);
     
     if (hosts.rb_node)
-	hse_free((struct host_set_elem *)hosts.rb_node);
+	hse_free(rb_entry(hosts.rb_node, struct host_set_elem, rbnode));
 }//hs_flush
 
 
@@ -160,9 +160,9 @@ void hs_free(struct host_set *hs)
 static void hse_free(struct host_set_elem *hse)
 {
     if (hse->rbnode.rb_left)
-	hse_free((struct host_set_elem *)hse->rbnode.rb_left);
+	hse_free(rb_entry(hse->rbnode.rb_left, struct host_set_elem, rbnode));
     if (hse->rbnode.rb_right)
-	hse_free((struct host_set_elem *)hse->rbnode.rb_right);
+	hse_free(rb_entry(hse->rbnode.rb_right, struct host_set_elem, rbnode));
     kfree(hse);
 }//hse_free
 
