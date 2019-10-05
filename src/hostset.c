@@ -77,7 +77,7 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
     
     new_elem = hse_create(hostname);
     if (! new_elem) {
-	pr_err("Cannot allocate memory for a new hostmnamr\n");
+	pr_err("Cannot allocate memory for a new hostname\n");
 	return -ENOMEM;
     }//if
     write_lock_bh(&hs_lock);
