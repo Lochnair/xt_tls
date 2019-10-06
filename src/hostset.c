@@ -309,21 +309,22 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
     switch (buf[0]) {
     case '/': /* flush table */
 	hs_flush(hs);
-	return size;
+	break;
     case '-': /* remove hostname */
 	rc = hs_remove_hostname(hs, buf + 1);
 	if (rc < 0)
 	    return rc;
-	proc_set_size(hs->proc_file, hs->filesize);
-	return size;
+	break;
     case '+': /* add hostname */
 	rc = hs_add_hostname(hs, buf + 1);
 	if (rc < 0)
 	    return rc;
-	proc_set_size(hs->proc_file, hs->filesize);
-	return size;
+	break;
     default:
 	pr_err("The first char must be an opcode: '+' to add a hostname, '-' to remove and '/' to flush the entire set\n");
 	return -EINVAL;
     }//switch
+    
+    proc_set_size(hs->proc_file, hs->filesize);
+    return size;
 }//proc_write
