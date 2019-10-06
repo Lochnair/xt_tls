@@ -73,14 +73,19 @@ static struct host_set_elem *hse_create(const char *hostname)
 static int hs_add_hostname(struct host_set *hs, const char *hostname)
 {
     struct rb_node **link = &hs->hosts.rb_node, *parent = NULL;
-    struct host_set_elem *new_elem;
     bool already_have= false;
-    
-    new_elem = hse_create(hostname);
+    struct host_set_elem *new_elem = hse_create(hostname);
     if (! new_elem) {
 	pr_err("Cannot allocate memory for a new hostname\n");
 	return -ENOMEM;
     }//if
+#ifdef XT_TLS_DEBUG
+    pr_info("New hostset elem created at %px:\n", new_elem);
+    pr_info("  rbnode: l=%px, r=%px, color=%d\n", new_elem->rbnode.rb_left, 
+	    new_elem->rbnode.rb_left, new_elem->rbnode.__rb_parent_color);
+    pr_info("  name='%s'\n", new_elem->name);
+#endif
+    
     write_lock_bh(&hs_lock);
     
     while (*link) {
