@@ -86,6 +86,8 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
 	    new_elem->rbnode.rb_left, new_elem->rbnode.__rb_parent_color);
     pr_info("  name='%s'\n", new_elem->name);
 #endif
+    kfree(new_elem);
+    return 0;
     
     write_lock_bh(&hs_lock);
     
@@ -300,7 +302,7 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
     p = buf + size;
     *p-- = '\0';
     while (p > buf && (*p == '\n' || *p == '\r'))
-	p--;
+        *p-- = '\0';
 
     /* Strict protocol! */
     if (*loff != 0)
