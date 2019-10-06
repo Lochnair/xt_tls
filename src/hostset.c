@@ -72,7 +72,7 @@ static struct host_set_elem *hse_create(const char *hostname)
 // Add a hostname to this set
 static int hs_add_hostname(struct host_set *hs, const char *hostname)
 {
-    struct rb_node **link = &hs->hosts.rb_node, *parent = *link;
+    struct rb_node **link = &hs->hosts.rb_node, *parent = NULL;
     struct host_set_elem *new_elem;
     bool already_have= false;
     
