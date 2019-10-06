@@ -63,7 +63,7 @@ static struct host_set_elem *hse_create(const char *hostname)
     if (! hse)
 	return NULL;
     
-    RB_CLEAR_NODE(&hse->rbnode);
+    //RB_CLEAR_NODE(&hse->rbnode);
     hse->rbnode.rb_left = hse->rbnode.rb_right = NULL;
     strrev(hse->name, hostname);
     return hse;
@@ -86,8 +86,8 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
 	    new_elem->rbnode.rb_left, new_elem->rbnode.__rb_parent_color);
     pr_info("  name='%s'\n", new_elem->name);
 #endif
-    kfree(new_elem);
-    return 0;
+//    kfree(new_elem);
+//    return 0;
     
     write_lock_bh(&hs_lock);
     
