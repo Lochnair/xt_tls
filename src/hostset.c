@@ -74,7 +74,7 @@ static struct host_set_elem *hse_create(const char *hostname)
 static int hs_add_hostname(struct host_set *hs, const char *hostname)
 {
     struct rb_node **link = &hs->hosts.rb_node, *parent = NULL;
-    bool already_have= false;
+    bool already_have = false;
     struct host_set_elem *new_elem = hse_create(hostname);
     if (! new_elem) {
 	pr_err("Cannot allocate memory for a new hostname\n");
@@ -121,6 +121,30 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
 // Remove a hostname from this set
 static int hs_remove_hostname(struct host_set *hs, const char *hostname)
 {
+    struct rb_node **link = &hs->hosts.rb_node;
+    bool found = false;
+    char hostnamerev[MAX_HOSTNAME_LEN + 1];
+    strrev(hostnamerev, hostname);
+    
+    write_lock_bh(&hs_lock);
+    
+    while (*link) {
+	struct host_set_elem *hse = rb_entry(*link, struct host_set_elem, rbnode);
+	int cmp = strcmp(hostnamerev, hse->name);
+	if (cmp < 0)
+	    link = &(*link)->rb_left;
+	else if (cmp > 0)
+	    link = &(*link)->rb_right;
+	else {
+	    found = true;
+	    break;
+	}//if
+    }//while
+
+    if (found)
+	rb_erase(*link, &hs->hosts);
+    
+    write_unlock_bh(&hs_lock);
     return 0;
 }//hs_remove_hostname
 
@@ -295,7 +319,6 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
     struct inode *inode = file_inode(file);
     struct host_set *hs = PDE_DATA(inode);
     char buf[MAX_HOSTNAME_LEN + 2];
-//    char *p;
     int rc;
 
     if (size == 0)
@@ -304,10 +327,6 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
 	size = sizeof(buf) - 1;
     if (copy_from_user(buf, input, size) != 0)
 	return -EFAULT;
-//    p = buf + size;
-//    *p-- = '\0';
-//    while (p > buf && (*p == '\n' || *p == '\r'))
-//        *p-- = '\0';
     buf[size] = '\0';
 
     /* Strict protocol! */
