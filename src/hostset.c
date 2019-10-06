@@ -292,10 +292,11 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
 
     if (size == 0)
 	return 0;
-    if (size > sizeof(buf))
-	size = sizeof(buf);
+    if (size > sizeof(buf) - 1)
+	size = sizeof(buf) - 1;
     if (copy_from_user(buf, input, size) != 0)
 	return -EFAULT;
+    buf[size] = '\0';
 
     /* Strict protocol! */
     if (*loff != 0)
