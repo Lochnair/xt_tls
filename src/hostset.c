@@ -321,7 +321,7 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
 	rc = hs_add_hostname(hs, buf + 1);
 	if (rc < 0)
 	    return rc;
-	proc_set_size(hs->proc_file, hs->filesize);
+	//proc_set_size(hs->proc_file, hs->filesize);
 	return size;
     default:
 	pr_err("The first char must be an opcode: '+' to add a hostname, '-' to remove and '/' to flush the entire set\n");
