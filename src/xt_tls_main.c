@@ -449,5 +449,6 @@ module_exit(tls_mt_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Nils Andreas Svee <nils@stokkdalen.no>");
+MODULE_AUTHOR("Dmitriy Stepanenko <mpolk@sns.net.ua>");
 MODULE_DESCRIPTION("Xtables: TLS (SNI) matching");
 MODULE_ALIAS("ipt_tls");
