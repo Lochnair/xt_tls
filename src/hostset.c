@@ -145,6 +145,12 @@ static int hs_remove_hostname(struct host_set *hs, const char *hostname)
 	rb_erase(node, &hs->hosts);
     
     write_unlock_bh(&hs_lock);
+    
+    if (! found) {
+	pr_info("No such host: %s\n", hostname);
+	return -ENOENT;
+    }//if
+    
     return 0;
 }//hs_remove_hostname
 
