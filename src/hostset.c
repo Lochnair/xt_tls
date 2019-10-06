@@ -41,6 +41,7 @@ int hs_init(struct host_set *hs, const char *name)
     strcpy(hs->name, name);
     hs->refcount = 1;
     hs->hosts = RB_ROOT;
+    hs->filesize = 0;
     
     hs->proc_file = proc_create_data(name, 0644, proc_fs_hostset_dir, 
 	    &proc_fops, &hs);
@@ -105,6 +106,7 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
     if (! already_have) {
 	rb_link_node(&new_elem->rbnode, parent, link);
 	rb_insert_color(&new_elem->rbnode, &hs->hosts);	
+	hs->filesize += strlen(hostname) + 1;
     }//if
     
     write_unlock_bh(&hs_lock);
@@ -130,6 +132,7 @@ static void hs_flush(struct host_set *hs)
     write_lock_bh(&hs_lock);
     hosts = hs->hosts;
     hs->hosts = RB_ROOT;
+    hs->filesize = 0;
     write_unlock_bh(&hs_lock);
     
     if (hosts.rb_node)
@@ -282,7 +285,8 @@ static int seq_file_open(struct inode *inode, struct file *file)
 static ssize_t
 proc_write(struct file *file, const char __user *input, size_t size, loff_t *loff)
 {
-    struct host_set *hs = PDE_DATA(file_inode(file));
+    struct inode *inode = file_inode(file);
+    struct host_set *hs = PDE_DATA(inode);
     char buf[MAX_HOSTNAME_LEN + 2];
     int rc;
 
@@ -310,6 +314,7 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
 	rc = hs_add_hostname(hs, buf + 1);
 	if (rc < 0)
 	    return rc;
+	proc_set_size(hs->proc_file, hs->filesize);
 	return size;
     default:
 	pr_err("The first char must be an opcode: '+' to add a hostname, '-' to remove and '/' to flush the entire set\n");

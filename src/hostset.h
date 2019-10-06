@@ -22,6 +22,7 @@ struct host_set {
     char name[MAX_HOSTSET_NAME_LEN + 1];  //the set name (stringz)
     struct rb_root hosts;
     struct proc_dir_entry *proc_file;
+    loff_t filesize;
 };//host_set
 
 
