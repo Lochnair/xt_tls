@@ -81,7 +81,7 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
     }//if
 #ifdef XT_TLS_DEBUG
     pr_info("New hostset elem created at %px:\n", new_elem);
-    pr_info("  rbnode: l=%px, r=%px, color=%d\n", new_elem->rbnode.rb_left, 
+    pr_info("  rbnode: l=%px, r=%px, color=%lu\n", new_elem->rbnode.rb_left, 
 	    new_elem->rbnode.rb_left, new_elem->rbnode.__rb_parent_color);
     pr_info("  name='%s'\n", new_elem->name);
 #endif
