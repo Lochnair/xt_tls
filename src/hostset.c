@@ -259,6 +259,9 @@ static int seq_read_show(struct seq_file *seq, void *v)
 {
     const struct host_set_elem *hse = rb_entry(v, struct host_set_elem, rbnode);
     const char *p = hse->name + strlen(hse->name);
+#ifdef XT_TLS_DEBUG
+    pr_info("Seq read show: %s\n", hse->name);
+#endif
     
     while (--p >= hse->name)
         seq_putc(seq, *p);
