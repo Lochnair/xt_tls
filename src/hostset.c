@@ -228,6 +228,10 @@ static void *seq_read_start(struct seq_file *seq, loff_t *pos)
     struct rb_node *node;
     loff_t p = *pos;
 
+#ifdef XT_TLS_DEBUG
+    pr_info("Seq read start: %s\n", hs->name);
+#endif
+
     read_lock_bh(&hs_lock);
 
     for (node = rb_first(&hs->hosts); node; node = rb_next(node)) {
