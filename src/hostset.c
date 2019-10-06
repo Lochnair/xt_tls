@@ -210,14 +210,12 @@ bool hs_lookup(struct host_set *hs, const char *hostname, bool suffix_matching)
 {
     bool result = false;
     char pattern[MAX_HOSTNAME_LEN + 1];
-    size_t patlen;
     struct rb_node *node;
-    
+    //if
     if (! hs->hosts.rb_node)
 	return false;
     
     strrev(pattern, hostname);
-    patlen = strlen(pattern);
     
     if (! read_trylock(&hs_lock))
 	return false;
@@ -226,9 +224,13 @@ bool hs_lookup(struct host_set *hs, const char *hostname, bool suffix_matching)
     read_lock_bh(&hs_lock);
     for (node = hs->hosts.rb_node; ! result && node;) {
 	struct host_set_elem *hse = rb_entry(node, struct host_set_elem, rbnode);
-	int cmp = suffix_matching ? 
-	    strncmp(pattern, hse->name, patlen) : 
-	    strcmp(pattern, hse->name);
+	int cmp;
+	if (suffix_matching) {
+	    size_t len = strlen(hse->name);
+	    cmp = strncmp(pattern, hse->name, len);
+	} else {
+	    cmp = strcmp(pattern, hse->name);
+	}//if
 	if (cmp < 0)
 	    node = node->rb_left;
 	else if (cmp > 0)
