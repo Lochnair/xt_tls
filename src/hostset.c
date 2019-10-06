@@ -224,7 +224,7 @@ static void strrev(char *dst, const char *src)
 static void *seq_read_start(struct seq_file *seq, loff_t *pos)
     __acquires(hs_lock)
 {
-    const struct host_set *hs = seq->file->private_data;
+    const struct host_set *hs = PDE_DATA(file_inode(seq->file));
     struct rb_node *node;
     loff_t p = *pos;
 
