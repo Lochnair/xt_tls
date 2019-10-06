@@ -83,12 +83,14 @@ static void tls_print(const void *ip, const struct xt_entry_match *match, int nu
 	printf(" TLS match");
 	if (info->op_flags & XT_TLS_OP_HOST) {
 	    bool invert = info->inversion_flags & XT_TLS_OP_HOST;
-	    printf("%s --tls-host %s", invert ? " !":"", info->host_or_set_name);
+	    printf("%s host %s", invert ? " !":"", info->host_or_set_name);
 	}//if
 	
 	if (info->op_flags & XT_TLS_OP_HOSTSET) {
 	    bool invert = info->inversion_flags & XT_TLS_OP_HOSTSET;
-	    printf("%s --tls-hostset %s", invert ? " !":"", info->host_or_set_name);
+	    char *suffix_match = info->op_flags & XT_TLS_OP_SUFFIX ? " suffix" : "";
+	    printf("%s hostset %s%s", invert ? " !":"", info->host_or_set_name, 
+		    suffix_match);
 	}//if
 }
 
@@ -103,7 +105,9 @@ static void tls_save(const void *ip, const struct xt_entry_match *match)
 
 	if (info->op_flags & XT_TLS_OP_HOSTSET) {
 	    bool invert = info->inversion_flags & XT_TLS_OP_HOSTSET;
-	    printf("%s --tls-hostset %s", invert ? " !":"", info->host_or_set_name);
+	    char *suffix_match = info->op_flags & XT_TLS_OP_SUFFIX ? " --tls-suffix" : "";
+	    printf("%s --tls-hostset %s%s", invert ? " !":"", info->host_or_set_name,
+		    suffix_match);
 	}//if
 }
 
