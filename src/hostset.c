@@ -209,7 +209,7 @@ static void strrev(char *dst, const char *src)
 {
     const char *ps = src + strlen(src);
     char *pd = dst;
-    while (ps-- >= src)
+    while (ps-- > src)
 	*pd++ = *ps;
     *pd = '\0';
 }//strrev
