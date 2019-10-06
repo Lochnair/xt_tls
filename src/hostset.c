@@ -74,7 +74,7 @@ static struct host_set_elem *hse_create(const char *hostname)
 static int hs_add_hostname(struct host_set *hs, const char *hostname)
 {
     struct rb_node **link = &hs->hosts.rb_node, *parent = NULL;
-    bool already_have= true; //!!!!!!
+    bool already_have= false;
     struct host_set_elem *new_elem = hse_create(hostname);
     if (! new_elem) {
 	pr_err("Cannot allocate memory for a new hostname\n");
