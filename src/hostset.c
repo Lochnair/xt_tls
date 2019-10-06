@@ -231,6 +231,7 @@ bool hs_lookup(struct host_set *hs, const char *hostname, bool suffix_matching)
 	} else {
 	    cmp = strcmp(pattern, hse->name);
 	}//if
+	
 	if (cmp < 0)
 	    node = node->rb_left;
 	else if (cmp > 0)
