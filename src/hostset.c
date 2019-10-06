@@ -295,7 +295,7 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
     struct inode *inode = file_inode(file);
     struct host_set *hs = PDE_DATA(inode);
     char buf[MAX_HOSTNAME_LEN + 2];
-    char *p;
+//    char *p;
     int rc;
 
     if (size == 0)
@@ -304,10 +304,11 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
 	size = sizeof(buf) - 1;
     if (copy_from_user(buf, input, size) != 0)
 	return -EFAULT;
-    p = buf + size;
-    *p-- = '\0';
-    while (p > buf && (*p == '\n' || *p == '\r'))
-        *p-- = '\0';
+//    p = buf + size;
+//    *p-- = '\0';
+//    while (p > buf && (*p == '\n' || *p == '\r'))
+//        *p-- = '\0';
+    buf[size] = '\0';
 
     /* Strict protocol! */
     if (*loff != 0)
@@ -318,12 +319,12 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
 	hs_flush(hs);
 	break;
     case '-': /* remove hostname */
-	rc = hs_remove_hostname(hs, buf + 1);
+	rc = hs_remove_hostname(hs, strim(buf + 1));
 	if (rc < 0)
 	    return rc;
 	break;
     case '+': /* add hostname */
-	rc = hs_add_hostname(hs, buf + 1);
+	rc = hs_add_hostname(hs, strim(buf + 1));
 	if (rc < 0)
 	    return rc;
 	break;
