@@ -79,8 +79,9 @@ static void tls_check(struct xt_fcheck_call *cb)
 static void tls_print(const void *ip, const struct xt_entry_match *match, int numeric)
 {
 	const struct xt_tls_info *info = (const struct xt_tls_info *)match->data;
+	char *suffix_match = info->op_flags & XT_TLS_OP_SUFFIX ? "(suffix)" : "";
 
-	printf(" TLS match");
+	printf(" TLS match%s", suffix_match);
 	if (info->op_flags & XT_TLS_OP_HOST) {
 	    bool invert = info->inversion_flags & XT_TLS_OP_HOST;
 	    printf("%s host %s", invert ? " !":"", info->host_or_set_name);
@@ -88,7 +89,6 @@ static void tls_print(const void *ip, const struct xt_entry_match *match, int nu
 	
 	if (info->op_flags & XT_TLS_OP_HOSTSET) {
 	    bool invert = info->inversion_flags & XT_TLS_OP_HOSTSET;
-	    char *suffix_match = info->op_flags & XT_TLS_OP_SUFFIX ? " suffix" : "";
 	    printf("%s hostset %s%s", invert ? " !":"", info->host_or_set_name, 
 		    suffix_match);
 	}//if
