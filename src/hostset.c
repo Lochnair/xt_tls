@@ -288,6 +288,7 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
     struct inode *inode = file_inode(file);
     struct host_set *hs = PDE_DATA(inode);
     char buf[MAX_HOSTNAME_LEN + 2];
+    char *p;
     int rc;
 
     if (size == 0)
@@ -296,7 +297,10 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
 	size = sizeof(buf) - 1;
     if (copy_from_user(buf, input, size) != 0)
 	return -EFAULT;
-    buf[size] = '\0';
+    p = buf + size;
+    *p-- = '\0';
+    while (p > buf && (*p == '\n' || *p == '\r'))
+	p--;
 
     /* Strict protocol! */
     if (*loff != 0)
