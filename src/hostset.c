@@ -147,7 +147,7 @@ static int hs_remove_hostname(struct host_set *hs, const char *hostname)
     write_unlock_bh(&hs_lock);
     
     if (! found) {
-	pr_info("No such host: %s\n", hostname);
+	pr_err("No such host: %s\n", hostname);
 	return -ENOENT;
     }//if
     
