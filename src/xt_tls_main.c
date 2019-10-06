@@ -250,6 +250,7 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	bool invert = (pattern_type == XT_TLS_OP_HOSTSET) ?
 	    (info->inversion_flags & XT_TLS_OP_HOSTSET) :
 	    (info->inversion_flags & XT_TLS_OP_HOST);
+	bool suffix_matching = info->op_flags & XT_TLS_OP_SUFFIX;
 	bool match;
 
 	if ((result = get_tls_hostname(skb, &parsed_host)) != 0)
@@ -260,7 +261,8 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 		match = glob_match(info->host_or_set_name, parsed_host);
 		break;
 	    case XT_TLS_OP_HOSTSET:
-		match = hs_lookup(&host_set_table[info->hostset_index], parsed_host);
+		match = hs_lookup(&host_set_table[info->hostset_index], 
+			parsed_host, suffix_matching);
 		break;
 	}//switch
 
