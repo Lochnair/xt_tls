@@ -121,20 +121,20 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
 // Remove a hostname from this set
 static int hs_remove_hostname(struct host_set *hs, const char *hostname)
 {
-    struct rb_node **link = &hs->hosts.rb_node;
+    struct rb_node *node = hs->hosts.rb_node;
     bool found = false;
     char hostnamerev[MAX_HOSTNAME_LEN + 1];
     strrev(hostnamerev, hostname);
     
     write_lock_bh(&hs_lock);
     
-    while (*link) {
-	struct host_set_elem *hse = rb_entry(*link, struct host_set_elem, rbnode);
+    while (node) {
+	struct host_set_elem *hse = rb_entry(node, struct host_set_elem, rbnode);
 	int cmp = strcmp(hostnamerev, hse->name);
 	if (cmp < 0)
-	    link = &(*link)->rb_left;
+	    node = node->rb_left;
 	else if (cmp > 0)
-	    link = &(*link)->rb_right;
+	    node = node->rb_right;
 	else {
 	    found = true;
 	    break;
@@ -142,7 +142,7 @@ static int hs_remove_hostname(struct host_set *hs, const char *hostname)
     }//while
 
     if (found)
-	rb_erase(*link, &hs->hosts);
+	rb_erase(node, &hs->hosts);
     
     write_unlock_bh(&hs_lock);
     return 0;
