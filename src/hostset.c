@@ -63,7 +63,7 @@ static struct host_set_elem *hse_create(const char *hostname)
     if (! hse)
 	return NULL;
     
-    //RB_CLEAR_NODE(&hse->rbnode);
+    RB_CLEAR_NODE(&hse->rbnode);
     hse->rbnode.rb_left = hse->rbnode.rb_right = NULL;
     strrev(hse->name, hostname);
     return hse;
@@ -314,6 +314,7 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
 	rc = hs_remove_hostname(hs, buf + 1);
 	if (rc < 0)
 	    return rc;
+	proc_set_size(hs->proc_file, hs->filesize);
 	return size;
     case '+': /* add hostname */
 	rc = hs_add_hostname(hs, buf + 1);
