@@ -59,7 +59,7 @@ int hs_init(struct host_set *hs, const char *name)
 static struct host_set_elem *hse_create(const char *hostname)
 {
     struct host_set_elem *hse = 
-	kmalloc(sizeof(struct host_set_elem) + strlen(hostname), GFP_KERNEL);
+	kmalloc(sizeof(struct host_set_elem) + strlen(hostname) + 1, GFP_KERNEL);
     if (! hse)
 	return NULL;
     
