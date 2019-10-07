@@ -144,8 +144,10 @@ static int hs_remove_hostname(struct host_set *hs, const char *hostname)
 	}//if
     }//while
 
-    if (found)
+    if (found) {
 	rb_erase(node, &hs->hosts);
+	hs->filesize -= strlen(hostname) + 1;
+    }//if
     
     write_unlock_bh(&hs_lock);
     
