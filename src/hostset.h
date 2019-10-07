@@ -12,6 +12,7 @@
 // Host set element holding a single host name
 struct host_set_elem {
     struct rb_node rbnode;
+    __u64 hit_count;
     char name[]; //the host name (reversed)
 };//host_set_elem
 

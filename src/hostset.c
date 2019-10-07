@@ -65,6 +65,7 @@ static struct host_set_elem *hse_create(const char *hostname)
     
     RB_CLEAR_NODE(&hse->rbnode);
     hse->rbnode.rb_left = hse->rbnode.rb_right = NULL;
+    hse->hit_count = 0;
     strrev(hse->name, hostname);
     return hse;
 }//hse_create
@@ -215,7 +216,6 @@ bool hs_lookup(struct host_set *hs, const char *hostname, bool suffix_matching)
     bool result = false;
     char pattern[MAX_HOSTNAME_LEN + 1];
     struct rb_node *node;
-    //if
     if (! hs->hosts.rb_node)
 	return false;
     
@@ -240,8 +240,10 @@ bool hs_lookup(struct host_set *hs, const char *hostname, bool suffix_matching)
 	    node = node->rb_left;
 	else if (cmp > 0)
 	    node = node->rb_right;
-	else
+	else {
+	    hse->hit_count++;
 	    result = true;
+	}//if
     }//for
     read_unlock_bh(&hs_lock);
     return result;
@@ -308,6 +310,7 @@ static int seq_read_show(struct seq_file *seq, void *v)
     pr_info("Seq read show: %s\n", hse->name);
 #endif
     
+    seq_printf(seq, "%12llu ", hse->hit_count);
     while (--p >= hse->name)
         seq_putc(seq, *p);
     
