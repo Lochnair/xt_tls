@@ -48,11 +48,14 @@ You can also match subdomains using wildcards like this.
 ```bash
 sudo iptables -A OUTPUT -p tcp --dport 443 -m tls --tls-host "\*.googlevideo.com" -j DROP
 ```
-Another way to specify the hostname matching patterns is to use the hostsets. This is a way to do when you have to match each packet  with a lot of potentially suitable hostnames. While you may write a separate iptables rule for each hostname, it would be very inefficient. A better way is place all the hostnames to the single collection named "hostset". The hostsets are similar to the ipsets with the differnce that they contain host names rather then ip-addresses. The entire hostset can be matches with a single iptables rule:
+Another way to specify the hostname matching patterns is to use the hostsets. This is a way to do when you have to match each packet  with a lot of potentially suitable hostnames. While you may write a separate iptables rule for each hostname, it would be very inefficient. A better way is place all the hostnames to the single collection named "hostset". The hostsets are similar to the [ipsets](http://ipset.netfilter.org/) with the difference that they contain host names rather than ip-addresses. The entire hostset can be matches with a single iptables rule:
 
 ```bash
 sudo iptables -A OUTPUT -p tcp --dport 443 -m tls --tls-hostset blacklist -j DROP
 ```
+This is far more efficient than write a chain consisting of many similar rules. Technically a hostset is a binary tree, which stores hostnames in the lexicographically reversed form (for faster suffix matching). Hostsets are created automatically, as soon as the first iptables rule referencing this hostset is created. And they are also destroyed automatically after the deletion the last rule that uses this hostset.
+
+The hostsets are created empty, so they match nothing at this moment. You should populate a newly created hostset. All manipulations with a hostset content are done using the /proc filesystems.
 
 ## Bugs
 If you encounter a bug please make sure to include the following things in your bug report:
