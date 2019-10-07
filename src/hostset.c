@@ -122,6 +122,7 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
 static int hs_remove_hostname(struct host_set *hs, const char *hostname)
 {
     struct rb_node *node = hs->hosts.rb_node;
+    struct host_set_elem *hse;
     bool found = false;
     char hostnamerev[MAX_HOSTNAME_LEN + 1];
     strrev(hostnamerev, hostname);
@@ -129,8 +130,9 @@ static int hs_remove_hostname(struct host_set *hs, const char *hostname)
     write_lock_bh(&hs_lock);
     
     while (node) {
-	struct host_set_elem *hse = rb_entry(node, struct host_set_elem, rbnode);
-	int cmp = strcmp(hostnamerev, hse->name);
+	int cmp;
+	hse = rb_entry(node, struct host_set_elem, rbnode);
+	cmp = strcmp(hostnamerev, hse->name);
 	if (cmp < 0)
 	    node = node->rb_left;
 	else if (cmp > 0)
@@ -146,7 +148,9 @@ static int hs_remove_hostname(struct host_set *hs, const char *hostname)
     
     write_unlock_bh(&hs_lock);
     
-    if (! found) {
+    if (found) {
+	kfree(hse);
+    } else {
 	pr_err("No such host: %s\n", hostname);
 	return -ENOENT;
     }//if
