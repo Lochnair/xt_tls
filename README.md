@@ -53,9 +53,35 @@ Another way to specify the hostname matching patterns is to use the hostsets. Th
 ```bash
 sudo iptables -A OUTPUT -p tcp --dport 443 -m tls --tls-hostset blacklist -j DROP
 ```
-This is far more efficient than write a chain consisting of many similar rules. Technically a hostset is a binary tree, which stores hostnames in the lexicographically reversed form (for faster suffix matching). Hostsets are created automatically, as soon as the first iptables rule referencing this hostset is created. And they are also destroyed automatically after the deletion the last rule that uses this hostset.
+This is far more efficient than write a chain consisting of many similar rules. Technically a hostset is a binary tree, which stores hostnames in the lexicographically reversed form (for faster suffix matching). Hostsets are created automatically, as soon as the first iptables rule referencing this hostset is created. They are also destroyed automatically after the deletion of the last rule that uses this hostset.
 
-The hostsets are created empty, so they match nothing at this moment. You should populate a newly created hostset. All manipulations with a hostset content are done using the /proc filesystems.
+The hostsets are created empty, so they match nothing at this moment. You should populate a newly created hostset. All manipulations with a hostset content are done using the /proc filesystems:
+```bash
+sudo echo +facebook.com > /proc/net/xt_tls/hostset/blacklist
+sudo echo +googlevideo.com > /proc/net/xt_tls/hostset/blacklist
+...
+```
+Each hostset has a corresponding file in the "/proc/net/xt_tls/hostset" directory, which may be used to manipulate its content. The protocol is similar to that of the "xt_recent" iptables extension.
+
+To add a new hostname to the hostset, you should write this name, perfixed with a '+' sign to the corresponding /proc file, as above.
+
+To remove an individual hostname from the set you should put this this ths name to the /proc file, prefixed with a '-' sign:
+```bash
+sudo echo -facebook.com > /proc/net/xt_tls/hostset/blacklist
+```
+To flush the entire hostset content (to remove all the names), write a '/' character to the proc file:
+```bash
+sudo echo / > /proc/net/xt_tls/hostset/blacklist
+```
+To get the current content of the hostset (together with hostname hit statistics), just read the corresponding /proc file:
+```bash
+cat /proc/net/xt_tls/hostset/blacklist
+
+  298776098 facebook.com
+ 8736567589 googlevideo.com
+          0 some.forgotten.site
+ ...
+```
 
 ## Bugs
 If you encounter a bug please make sure to include the following things in your bug report:
