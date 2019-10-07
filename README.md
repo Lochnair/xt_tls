@@ -65,7 +65,7 @@ Each hostset has a corresponding file in the "/proc/net/xt_tls/hostset" director
 
 To add a new hostname to the hostset, you should write this name, perfixed with a '+' sign to the corresponding /proc file, as above.
 
-To remove an individual hostname from the set you should put this this ths name to the /proc file, prefixed with a '-' sign:
+To remove an individual hostname from the set you should put this name prefixed with a '-' sign to the /proc file:
 ```bash
 sudo echo -facebook.com > /proc/net/xt_tls/hostset/blacklist
 ```
