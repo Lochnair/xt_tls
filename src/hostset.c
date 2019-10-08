@@ -19,8 +19,12 @@ static DEFINE_RWLOCK(hs_lock);
 static void hse_free(struct host_set_elem *hse);
 static void strrev(char *dst, const char *src);
 static int seq_file_open(struct inode *inode, struct file *file);
-static ssize_t
-proc_write(struct file *file, const char __user *input, size_t size, loff_t *loff);
+static ssize_t proc_write(struct file *file, const char __user *input, 
+    size_t size, loff_t *loff);
+
+// Params for displaying a hostset content and calculationg its file size
+#define HIT_COUNT_DISPL_WIDTH 12
+#define HSE_SIZE_OVERHEAD (HIT_COUNT_DISPL_WIDTH + 2)
 
 static struct file_operations proc_fops = {
     .owner = THIS_MODULE,
@@ -107,7 +111,7 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
     if (! already_have) {
 	rb_link_node(&new_elem->rbnode, parent, link);
 	rb_insert_color(&new_elem->rbnode, &hs->hosts);	
-	hs->filesize += strlen(hostname) + 1;
+	hs->filesize += strlen(hostname) + HSE_SIZE_OVERHEAD;
     }//if
     
     write_unlock_bh(&hs_lock);
@@ -146,7 +150,7 @@ static int hs_remove_hostname(struct host_set *hs, const char *hostname)
 
     if (found) {
 	rb_erase(node, &hs->hosts);
-	hs->filesize -= strlen(hostname) + 1;
+	hs->filesize -= strlen(hostname) + HSE_SIZE_OVERHEAD;
     }//if
     
     write_unlock_bh(&hs_lock);
@@ -312,7 +316,7 @@ static int seq_read_show(struct seq_file *seq, void *v)
     pr_info("Seq read show: %s\n", hse->name);
 #endif
     
-    seq_printf(seq, "%12llu ", hse->hit_count);
+    seq_printf(seq, "%*llu ", HIT_COUNT_DISPL_WIDTH, hse->hit_count);
     while (--p >= hse->name)
         seq_putc(seq, *p);
     
