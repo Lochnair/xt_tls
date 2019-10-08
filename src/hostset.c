@@ -17,7 +17,7 @@
 static DEFINE_RWLOCK(hs_lock);
 
 static void hse_free(struct host_set_elem *hse);
-static void strrev(char *dst, const char *src);
+static void strrev(char *dst, const char *src, size_t max_len);
 static int seq_file_open(struct inode *inode, struct file *file);
 static ssize_t proc_write(struct file *file, const char __user *input, 
     size_t size, loff_t *loff);
@@ -62,15 +62,20 @@ int hs_init(struct host_set *hs, const char *name)
 // Create a new hostset element in the heap
 static struct host_set_elem *hse_create(const char *hostname)
 {
-    struct host_set_elem *hse = 
-	kmalloc(sizeof(struct host_set_elem) + strlen(hostname) + 1, GFP_KERNEL);
+    size_t len = strlen(hostname);
+    struct host_set_elem *hse;
+    
+    if (len > MAX_HOSTNAME_LEN)
+	len = MAX_HOSTNAME_LEN;
+    
+    hse = kmalloc(sizeof(struct host_set_elem) + len + 1, GFP_KERNEL);
     if (! hse)
 	return NULL;
     
     RB_CLEAR_NODE(&hse->rbnode);
     hse->rbnode.rb_left = hse->rbnode.rb_right = NULL;
     hse->hit_count = 0;
-    strrev(hse->name, hostname);
+    strrev(hse->name, hostname, len);
     return hse;
 }//hse_create
 
@@ -130,7 +135,7 @@ static int hs_remove_hostname(struct host_set *hs, const char *hostname)
     struct host_set_elem *hse;
     bool found = false;
     char hostnamerev[MAX_HOSTNAME_LEN + 1];
-    strrev(hostnamerev, hostname);
+    strrev(hostnamerev, hostname, MAX_HOSTNAME_LEN);
     
     write_lock_bh(&hs_lock);
     
@@ -225,7 +230,7 @@ bool hs_lookup(struct host_set *hs, const char *hostname, bool suffix_matching)
     if (! hs->hosts.rb_node)
 	return false;
     
-    strrev(pattern, hostname);
+    strrev(pattern, hostname, MAX_HOSTNAME_LEN);
     
     if (! read_trylock(&hs_lock))
 	return false;
@@ -257,11 +262,11 @@ bool hs_lookup(struct host_set *hs, const char *hostname, bool suffix_matching)
 
 
 // Reverse a string
-static void strrev(char *dst, const char *src)
+static void strrev(char *dst, const char *src, size_t max_len)
 {
     const char *ps = src + strlen(src);
     char *pd = dst;
-    while (ps-- > src)
+    while (ps-- > src && (pd - dst) < max_len)
 	*pd++ = *ps;
     *pd = '\0';
 }//strrev
