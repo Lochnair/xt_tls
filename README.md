@@ -83,6 +83,20 @@ cat /proc/net/xt_tls/hostset/blacklist
  ...
 ```
 
+You can not use wildcards with the hostsets. But you can use suffix matching instead. By default the host name set should match some hostset element exactly the entire rule also to match. But with "--tls-suffix" option it is enough when any host name suffix to match any hostset element. For example the following rule
+
+```bash
+sudo iptables -A OUTPUT -p tcp --dport 443 -m tls --tls-hostset blacklist --tls-suffix -j DROP
+```
+with the same hostset:
+
+```bash
+sudo echo +facebook.com > /proc/net/xt_tls/hostset/blacklist
+sudo echo +googlevideo.com > /proc/net/xt_tls/hostset/blacklist
+...
+```
+will match "facebook.com", "facebook.com", "anything.facebook.com" etc.
+
 ## Bugs
 If you encounter a bug please make sure to include the following things in your bug report:
 - The application used for sending the request
