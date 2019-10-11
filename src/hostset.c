@@ -85,11 +85,19 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
 {
     struct rb_node **link = &hs->hosts.rb_node, *parent = NULL;
     bool already_have = false;
-    struct host_set_elem *new_elem = hse_create(hostname);
+    struct host_set_elem *new_elem;
+    
+    if (strlen(hostname) == 0) {
+	pr_err("Empty host names are not allowed\n");
+	return -EINVAL;
+    }//if
+    
+    new_elem = hse_create(hostname);
     if (! new_elem) {
 	pr_err("Cannot allocate memory for a new hostname\n");
 	return -ENOMEM;
     }//if
+    
 #ifdef XT_TLS_DEBUG
     pr_info("New hostset elem created at %px:\n", new_elem);
     pr_info("  rbnode: l=%px, r=%px, color=%lu\n", new_elem->rbnode.rb_left, 
@@ -135,6 +143,12 @@ static int hs_remove_hostname(struct host_set *hs, const char *hostname)
     struct host_set_elem *hse;
     bool found = false;
     char hostnamerev[MAX_HOSTNAME_LEN + 1];
+    
+    if (strlen(hostname) == 0) {
+	pr_err("Empty host names are not allowed\n");
+	return -EINVAL;
+    }//if
+    
     strrev(hostnamerev, hostname, MAX_HOSTNAME_LEN);
     
     write_lock_bh(&hs_lock);
@@ -344,6 +358,7 @@ static int seq_file_open(struct inode *inode, struct file *file)
 }//seq_file_open
 
 
+// Callback for writing to the proc file
 static ssize_t
 proc_write(struct file *file, const char __user *input, size_t size, loff_t *loff)
 {
