@@ -40,7 +40,7 @@ int hs_init(struct host_set *hs, const char *name)
     kgid_t gid = make_kgid(&init_user_ns, 0);
     
     if (strlen(name) > MAX_HOSTSET_NAME_LEN)
-	return -EINVAL;
+       return -EINVAL;
 
     strcpy(hs->name, name);
     hs->refcount = 1;
@@ -54,7 +54,7 @@ int hs_init(struct host_set *hs, const char *name)
 	return -EFAULT;
     }//if
     proc_set_user(hs->proc_file, uid, gid);
-    
+
     return 0;
 }//hs_init
 
@@ -70,7 +70,7 @@ static struct host_set_elem *hse_create(const char *hostname)
     
     hse = kmalloc(sizeof(struct host_set_elem) + len + 1, GFP_KERNEL);
     if (! hse)
-	return NULL;
+       return NULL;
     
     RB_CLEAR_NODE(&hse->rbnode);
     hse->rbnode.rb_left = hse->rbnode.rb_right = NULL;
@@ -88,8 +88,8 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
     struct host_set_elem *new_elem;
     
     if (strlen(hostname) == 0) {
-	pr_err("Empty host names are not allowed\n");
-	return -EINVAL;
+       pr_err("Empty host names are not allowed\n");
+       return -EINVAL;
     }//if
     
     new_elem = hse_create(hostname);
@@ -97,7 +97,7 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
 	pr_err("Cannot allocate memory for a new hostname\n");
 	return -ENOMEM;
     }//if
-    
+
 #ifdef XT_TLS_DEBUG
     pr_info("New hostset elem created at %px:\n", new_elem);
     pr_info("  rbnode: l=%px, r=%px, color=%lu\n", new_elem->rbnode.rb_left, 
@@ -112,7 +112,7 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
 	int cmp = strcmp(new_elem->name, hse->name);
 	parent = *link;
 	if (cmp < 0)
-	    link = &(*link)->rb_left;
+            link = &(*link)->rb_left;
 	else if (cmp > 0)
 	    link = &(*link)->rb_right;
 	else {
@@ -123,7 +123,7 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
 
     if (! already_have) {
 	rb_link_node(&new_elem->rbnode, parent, link);
-	rb_insert_color(&new_elem->rbnode, &hs->hosts);	
+	rb_insert_color(&new_elem->rbnode, &hs->hosts); 
 	hs->filesize += strlen(hostname) + HSE_SIZE_OVERHEAD;
     }//if
     
@@ -131,7 +131,7 @@ static int hs_add_hostname(struct host_set *hs, const char *hostname)
     
     if (already_have)
 	kfree(new_elem);
-    
+
     return 0;
 }//hs_add_hostname
 
@@ -234,6 +234,19 @@ static void hse_free(struct host_set_elem *hse)
     kfree(hse);
 }//hse_free
 
+// search for a wildcard (*) char
+size_t find_wildcardChar(const char* hostname)
+{
+    char   *ptr;
+    size_t idx;
+
+    idx = 0;
+    ptr = strchr(hostname, '*');
+    if (ptr)
+        idx = ptr - hostname;
+
+    return idx;
+}
 
 // Lookup the host set for the specifed host name
 bool hs_lookup(struct host_set *hs, const char *hostname, bool suffix_matching)
@@ -249,18 +262,21 @@ bool hs_lookup(struct host_set *hs, const char *hostname, bool suffix_matching)
     if (! read_trylock(&hs_lock))
 	return false;
     read_unlock(&hs_lock);
-    
+
     read_lock_bh(&hs_lock);
     for (node = hs->hosts.rb_node; ! result && node;) {
 	struct host_set_elem *hse = rb_entry(node, struct host_set_elem, rbnode);
 	int cmp;
+        size_t len;
 	if (suffix_matching) {
-	    size_t len = strlen(hse->name);
+            len = strlen(hse->name);
 	    cmp = strncmp(pattern, hse->name, len);
-	} else {
+        } else if ((len = find_wildcardChar(hse->name)) > 0) {
+            cmp = strncmp(pattern, hse->name, len);
+        } else {
 	    cmp = strcmp(pattern, hse->name);
-	}//if
-	
+        }//if
+
 	if (cmp < 0)
 	    node = node->rb_left;
 	else if (cmp > 0)
@@ -338,7 +354,7 @@ static int seq_read_show(struct seq_file *seq, void *v)
     seq_printf(seq, "%*llu ", HIT_COUNT_DISPL_WIDTH, hse->hit_count);
     while (--p >= hse->name)
         seq_putc(seq, *p);
-    
+
     seq_putc(seq, '\n');
     return 0;
 }//seq_read_show
