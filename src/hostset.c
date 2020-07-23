@@ -259,7 +259,7 @@ bool hs_lookup(struct host_set *hs, const char *hostname, bool suffix_matching)
 	} else {
 	    size_t len = strlen(hse->name);
 	    cmp = strncmp(pattern, hse->name, len);
-	    if (cmp == 0 && len < strlen(pattern) && pattern[len + 1] != '.') {
+	    if (cmp == 0 && len < strlen(pattern) && pattern[len] != '.') {
 		cmp = 1;
 	    }//if
 	}//if
