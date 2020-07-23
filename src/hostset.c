@@ -254,11 +254,14 @@ bool hs_lookup(struct host_set *hs, const char *hostname, bool suffix_matching)
     for (node = hs->hosts.rb_node; ! result && node;) {
 	struct host_set_elem *hse = rb_entry(node, struct host_set_elem, rbnode);
 	int cmp;
-	if (suffix_matching) {
+	if (! suffix_matching) {
+	    cmp = strcmp(pattern, hse->name);
+	} else {
 	    size_t len = strlen(hse->name);
 	    cmp = strncmp(pattern, hse->name, len);
-	} else {
-	    cmp = strcmp(pattern, hse->name);
+	    if (cmp == 0 && len < strlen(pattern) && pattern[len + 1] != '.') {
+		cmp = 1;
+	    }//if
 	}//if
 	
 	if (cmp < 0)
