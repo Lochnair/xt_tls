@@ -53,7 +53,7 @@ int hs_init(struct host_set *hs, const char *name)
 	pr_err("Cannot create a procfs file for the host set %s\n", name);
 	return -EFAULT;
     }//if
-    proc_set_user(hs->proc_file, uid, gid);
+    //proc_set_user(hs->proc_file, uid, gid);
     
     return 0;
 }//hs_init
