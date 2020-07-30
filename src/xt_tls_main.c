@@ -16,7 +16,7 @@
 #include "xt_tls.h"
 #include "hostset.h"
 
-static uint module_usage_count = 0;
+static uint module_usage_count = 0, procfs_usage_count = 0;
 
 // The maximum number of host sets
 static int max_host_sets = 8;
@@ -378,18 +378,27 @@ static struct xt_match tls_mt_regs[] __read_mostly = {
 
 static int __net_init tls_net_init(struct net *net)
 {
+    if (procfs_usage_count) {
+	procfs_usage_count++;
+	return 0;
+    }//if
+    
     proc_fs_dir = proc_mkdir(KBUILD_MODNAME, net->proc_net);
     proc_fs_hostset_dir = proc_mkdir(PROC_FS_HOSTSET_SUBDIR, proc_fs_dir);
     if (! proc_fs_hostset_dir) {
 	pr_err("Cannot create /proc/net/ subdirectory for this module\n");
 	return -EFAULT;
     }//if
+    
+    procfs_usage_count++;
     return 0;
 }//tls_net_init
 
 
 static void __net_exit tls_net_exit(struct net *net)
 {
+    if (--procfs_usage_count)
+	return;
     proc_remove(proc_fs_hostset_dir);
     proc_remove(proc_fs_dir);
 }//tls_net_exit
