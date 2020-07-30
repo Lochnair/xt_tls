@@ -16,6 +16,8 @@
 #include "xt_tls.h"
 #include "hostset.h"
 
+static uint module_usage_count = 0;
+
 // The maximum number of host sets
 static int max_host_sets = 8;
 module_param(max_host_sets, int, S_IRUGO);
@@ -401,8 +403,14 @@ static struct pernet_operations tls_net_ops = {
 
 static int __init tls_mt_init (void)
 {
-	int i;
-	int rc = xt_register_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+	int i, rc;
+	
+	if (module_usage_count) {
+	    module_usage_count++;
+	    return 0;
+	}//if
+	
+	rc = xt_register_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
 	if (rc)
 	    return rc;
 	
@@ -410,13 +418,13 @@ static int __init tls_mt_init (void)
 	if (rc) {
 	    pr_err("Cannot register pernet subsys\n");
 	    xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
-	    unregister_pernet_subsys(&tls_net_ops);
 	    return rc;
 	}//if
 	
 	host_set_table = kmalloc(sizeof (struct host_set) * max_host_sets, GFP_KERNEL);
 	if (! host_set_table) {
 	    pr_err("Cannot allocate memory for the host set table\n");
+	    unregister_pernet_subsys(&tls_net_ops);
 	    xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
 	    return -ENOMEM;
 	}//if
@@ -427,12 +435,16 @@ static int __init tls_mt_init (void)
 	for (i = 0; i < max_host_sets; i++)
 	    hs_zeroize(&host_set_table[i]);
 	
+	module_usage_count++;
 	return 0;
 }
 
 static void __exit tls_mt_exit (void)
 {
 	int i;
+	if (--module_usage_count)
+	    return;
+	
 	xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
 	
 	for (i = 0; i < max_host_sets; i++)
