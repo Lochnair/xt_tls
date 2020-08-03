@@ -370,6 +370,10 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
     char buf[MAX_HOSTNAME_LEN + 2];
     int rc;
 
+#ifdef XT_TLS_DEBUG
+    pr_info("proc_write %u chars at offset %lu: %s\n", size, loff, input);
+#endif
+
     if (size == 0)
 	return 0;
     if (size > sizeof(buf) - 1)

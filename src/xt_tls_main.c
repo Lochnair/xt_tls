@@ -284,7 +284,7 @@ static int tls_mt_check (const struct xt_mtchk_param *par)
 	
 	struct host_set_table_descriptor *hst_descr = find_host_set_table(par->net, NULL);
 	if (hst_descr == NULL) {
-	    pr_err("Cannot find a host set table for the net %p", par->net);
+	    pr_err("Cannot find a host set table for the net %p\n", par->net);
 	    return -EINVAL;
 	}//if
 	host_set_table = hst_descr->host_sets;
