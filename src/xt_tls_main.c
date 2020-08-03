@@ -386,14 +386,13 @@ static int __net_init tls_net_init(struct net *net)
     pr_info("Initializing net %px", net);
 #endif
     int i;
-    struct host_set_table_descriptor 
-	    *hst_descr = kmalloc(sizeof(struct host_set_table_descriptor), GFP_KERNEL);
+    struct host_set_table_descriptor
+	*hst_descr = kmalloc(sizeof(struct host_set_table_descriptor), GFP_KERNEL);
     if (hst_descr == NULL) {
-	pr_err("Cannot accloacte memory for the host set table");
+	pr_err("Cannot allocate memory for the host set table\n");
 	return -ENOMEM;
     }//if
 
-    hst_descr->next = NULL;
     hst_descr->net = net;
     
     hst_descr->host_sets =  kmalloc(sizeof (struct host_set) * max_host_sets, GFP_KERNEL);
@@ -425,6 +424,8 @@ static int __net_init tls_net_init(struct net *net)
 	return -EFAULT;
     }//if
     
+    hst_descr->next = host_set_tables;
+    host_set_tables = hst_descr;
     return 0;
 }//tls_net_init
 
@@ -438,7 +439,7 @@ static void __net_exit tls_net_exit(struct net *net)
     struct host_set_table_descriptor **pprev,
 	*hst_descr = find_host_set_table(net, &pprev);
     if (hst_descr == NULL) {
-	pr_err("Cannot find a host set table for the net %p", net);
+	pr_err("Cannot find a host set table for the net %p\n", net);
 	return;
     }//if
 
