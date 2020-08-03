@@ -27,8 +27,20 @@ struct host_set {
 };//host_set
 
 
+// Descriptor holding a pointer to the host set table for the specific net namespace
+struct host_set_table_descriptor {
+    struct net *net;
+    struct proc_dir_entry *proc_fs_dir, *proc_fs_hostset_dir;
+    struct host_set *host_sets;
+    struct host_set_table_descriptor *next;
+};//host_set_table_descriptor
+
+// The list of the host sets tables we use
+extern struct host_set_table_descriptor *host_set_tables;
+
+
 // Initialize a host set
-int hs_init(struct host_set *hs, const char *name);
+int hs_init(struct host_set *hs, const char *name, struct proc_dir_entry *parent_dir);
 // Increment the usage count for the host set
 static inline void hs_hold(struct host_set *hs) { hs->refcount++; }
 // Free a host set entry (taking into account its refcount)
@@ -41,3 +53,18 @@ static inline bool hs_is_free(struct host_set *hs) { return hs->refcount == 0; }
 static inline void hs_zeroize(struct host_set *hs) { hs->refcount = 0; }
 // Lookup the host set for the specifed host name
 bool hs_lookup(struct host_set *hs, const char *hostname, bool suffix_matching);
+
+// Find the host set table for a given net namespace
+static inline struct host_set_table_descriptor 
+    *find_host_set_table(struct net *net, struct host_set_table_descriptor ***ppprev)
+{
+    struct host_set_table_descriptor **pp;
+    for (pp = &host_set_tables; *pp; pp = &((*pp)->next)) {
+	if ((*pp)->net == net) {
+	    if (ppprev)
+		*ppprev = pp;
+	    return *pp;
+	}//if
+    }//for
+    return NULL;
+}//find_host_set_table

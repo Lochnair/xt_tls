@@ -12,11 +12,10 @@
 struct xt_tls_info {
 	__u16 op_flags, inversion_flags;
 	char host_or_set_name[MAX_HOSTNAME_LEN + 1];
-        __s32 hostset_index;
+        struct host_set *hostset;
 };
 
 #define PROC_FS_MODULE_DIR "xt_tls"
 #define PROC_FS_HOSTSET_SUBDIR "hostset"
-extern struct proc_dir_entry *proc_fs_hostset_dir;
 
 #endif /* _XT_TLS_TARGET_H */

@@ -16,18 +16,13 @@
 #include "xt_tls.h"
 #include "hostset.h"
 
-static uint module_usage_count = 0, procfs_usage_count = 0;
-
 // The maximum number of host sets
 static int max_host_sets = 8;
 module_param(max_host_sets, int, S_IRUGO);
 MODULE_PARM_DESC(max_host_sets, "host set table capacity (default 8)");
 
-// The table of the host sets we use
-static struct host_set *host_set_table;
-
-// The proc-fs subdirectory for hostsets
-struct proc_dir_entry *proc_fs_dir, *proc_fs_hostset_dir;
+// The list of the host sets tables we use
+struct host_set_table_descriptor *host_set_tables = NULL;
 
 /*
  * Searches through skb->data and looks for a
@@ -241,6 +236,7 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 	return EPROTO;
 }
 
+
 static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 {
 	char *parsed_host;
@@ -263,8 +259,7 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 		match = glob_match(info->host_or_set_name, parsed_host);
 		break;
 	    case XT_TLS_OP_HOSTSET:
-		match = hs_lookup(&host_set_table[info->hostset_index], 
-			parsed_host, suffix_matching);
+		match = hs_lookup(info->hostset, parsed_host, suffix_matching);
 		break;
 	}//switch
 
@@ -285,6 +280,14 @@ static int tls_mt_check (const struct xt_mtchk_param *par)
 {
 	__u16 proto;
 	struct xt_tls_info *match_info = par->matchinfo;
+	struct host_set *host_set_table;
+	
+	struct host_set_table_descriptor *hst_descr = find_host_set_table(par->net, NULL);
+	if (hst_descr == NULL) {
+	    pr_err("Cannot find a host set table for the net %p", par->net);
+	    return -EINVAL;
+	}//if
+	host_set_table = hst_descr->host_sets;
 
 	if (par->family == NFPROTO_IPV4) {
 		proto = ((const struct ipt_ip *) par->entryinfo)->proto;
@@ -325,12 +328,13 @@ static int tls_mt_check (const struct xt_mtchk_param *par)
 		    pr_err("Cannot add a new hostset: the hostset table is full\n");
 		    return -ENOMEM;
 		}//if
-		rc = hs_init(&host_set_table[i], match_info->host_or_set_name);
+		rc = hs_init(&host_set_table[i], match_info->host_or_set_name, 
+			hst_descr->proc_fs_hostset_dir);
 		if (rc)
 		    return rc;
 	    }//if
 	    
-	    match_info->hostset_index = i;
+	    match_info->hostset = host_set_table + i;
 	}//if
 
 	return 0;
@@ -345,7 +349,7 @@ static void tls_mt_destroy(const struct xt_mtdtor_param *par)
 		match_info->op_flags, match_info->hostset_index);
 #endif
 	if (match_info->op_flags & XT_TLS_OP_HOSTSET) {
-	    hs_free(&host_set_table[match_info->hostset_index]);
+	    hs_free(match_info->hostset);
 	}//if
 }//tls_mt_destroy
 
@@ -378,31 +382,73 @@ static struct xt_match tls_mt_regs[] __read_mostly = {
 
 static int __net_init tls_net_init(struct net *net)
 {
+#ifdef XT_TLS_DEBUG
     pr_info("Initializing net %px", net);
-    if (procfs_usage_count) {
-	procfs_usage_count++;
-	return 0;
+#endif
+    int i;
+    struct host_set_table_descriptor 
+	    *hst_descr = kmalloc(sizeof(struct host_set_table_descriptor), GFP_KERNEL);
+    if (hst_descr == NULL) {
+	pr_err("Cannot accloacte memory for the host set table");
+	return -ENOMEM;
     }//if
+
+    hst_descr->next = NULL;
+    hst_descr->net = net;
     
-    proc_fs_dir = proc_mkdir(KBUILD_MODNAME, net->proc_net);
-    proc_fs_hostset_dir = proc_mkdir(PROC_FS_HOSTSET_SUBDIR, proc_fs_dir);
-    if (! proc_fs_hostset_dir) {
+    hst_descr->host_sets =  kmalloc(sizeof (struct host_set) * max_host_sets, GFP_KERNEL);
+    if (! hst_descr->host_sets) {
+	pr_err("Cannot allocate memory for the host set table\n");
+	kfree(hst_descr);
+	return -ENOMEM;
+    }//if
+#ifdef XT_TLS_DEBUG
+	pr_info("Host set table allocated (%u elements max)\n", max_host_sets);
+#endif
+
+    for (i = 0; i < max_host_sets; i++)
+	hs_zeroize(&hst_descr->host_sets[i]);
+
+    hst_descr->proc_fs_dir = proc_mkdir(KBUILD_MODNAME, net->proc_net);
+    if (! hst_descr->proc_fs_dir) {
 	pr_err("Cannot create /proc/net/ subdirectory for this module\n");
+	kfree(hst_descr->host_sets);
+	kfree(hst_descr);
+	return -EFAULT;
+    }//if
+    hst_descr->proc_fs_hostset_dir = proc_mkdir(PROC_FS_HOSTSET_SUBDIR, hst_descr->proc_fs_dir);
+    if (! hst_descr->proc_fs_hostset_dir) {
+	pr_err("Cannot create /proc/net/ subdirectory for this module\n");
+	proc_remove(hst_descr->proc_fs_dir);
+	kfree(hst_descr->host_sets);
+	kfree(hst_descr);
 	return -EFAULT;
     }//if
     
-    procfs_usage_count++;
     return 0;
 }//tls_net_init
 
 
 static void __net_exit tls_net_exit(struct net *net)
 {
+    int i;
+#ifdef XT_TLS_DEBUG
     pr_info("Finalizing net %px", net);
-    if (--procfs_usage_count)
+#endif
+    struct host_set_table_descriptor **pprev,
+	*hst_descr = find_host_set_table(net, &pprev);
+    if (hst_descr == NULL) {
+	pr_err("Cannot find a host set table for the net %p", net);
 	return;
-    proc_remove(proc_fs_hostset_dir);
-    proc_remove(proc_fs_dir);
+    }//if
+
+    *pprev = hst_descr->next;
+    for (i = 0; i < max_host_sets; i++)
+	hs_destroy(hst_descr->host_sets + i);
+    proc_remove(hst_descr->proc_fs_hostset_dir);
+    proc_remove(hst_descr->proc_fs_dir);
+    kfree(hst_descr->host_sets);
+    kfree(hst_descr);
 }//tls_net_exit
 
 
@@ -414,14 +460,7 @@ static struct pernet_operations tls_net_ops = {
 
 static int __init tls_mt_init (void)
 {
-	int i, rc;
-	
-	if (module_usage_count) {
-	    module_usage_count++;
-	    return 0;
-	}//if
-	
-	rc = xt_register_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+	int rc = xt_register_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
 	if (rc)
 	    return rc;
 	
@@ -431,36 +470,12 @@ static int __init tls_mt_init (void)
 	    xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
 	    return rc;
 	}//if
-	
-	host_set_table = kmalloc(sizeof (struct host_set) * max_host_sets, GFP_KERNEL);
-	if (! host_set_table) {
-	    pr_err("Cannot allocate memory for the host set table\n");
-	    unregister_pernet_subsys(&tls_net_ops);
-	    xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
-	    return -ENOMEM;
-	}//if
-#ifdef XT_TLS_DEBUG
-	pr_info("Host set table allocated (%u elements max)\n", max_host_sets);
-#endif
-	
-	for (i = 0; i < max_host_sets; i++)
-	    hs_zeroize(&host_set_table[i]);
-	
-	module_usage_count++;
 	return 0;
 }
 
 static void __exit tls_mt_exit (void)
 {
-	int i;
-	if (--module_usage_count)
-	    return;
-	
 	xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
-	
-	for (i = 0; i < max_host_sets; i++)
-	    hs_destroy(&host_set_table[i]);
-	kfree(host_set_table);
 	unregister_pernet_subsys(&tls_net_ops);
 #ifdef XT_TLS_DEBUG
 	pr_info("Host set table disposed\n");
