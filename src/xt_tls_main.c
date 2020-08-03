@@ -378,6 +378,7 @@ static struct xt_match tls_mt_regs[] __read_mostly = {
 
 static int __net_init tls_net_init(struct net *net)
 {
+    pr_info("Initializing net %px", net);
     if (procfs_usage_count) {
 	procfs_usage_count++;
 	return 0;
@@ -397,6 +398,7 @@ static int __net_init tls_net_init(struct net *net)
 
 static void __net_exit tls_net_exit(struct net *net)
 {
+    pr_info("Finalizing net %px", net);
     if (--procfs_usage_count)
 	return;
     proc_remove(proc_fs_hostset_dir);
