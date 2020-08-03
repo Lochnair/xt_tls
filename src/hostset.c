@@ -371,7 +371,7 @@ proc_write(struct file *file, const char __user *input, size_t size, loff_t *lof
     int rc;
 
 #ifdef XT_TLS_DEBUG
-    pr_info("proc_write %u chars at offset %lu: %s\n", size, loff, input);
+    pr_info("proc_write %lu chars at offset %lld: %s\n", size, *loff, input);
 #endif
 
     if (size == 0)
