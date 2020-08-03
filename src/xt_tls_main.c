@@ -382,12 +382,13 @@ static struct xt_match tls_mt_regs[] __read_mostly = {
 
 static int __net_init tls_net_init(struct net *net)
 {
+    int i;
+    struct host_set_table_descriptor *hst_descr;
 #ifdef XT_TLS_DEBUG
     pr_info("Initializing net %px", net);
 #endif
-    int i;
-    struct host_set_table_descriptor
-	*hst_descr = kmalloc(sizeof(struct host_set_table_descriptor), GFP_KERNEL);
+    
+    hst_descr = kmalloc(sizeof(struct host_set_table_descriptor), GFP_KERNEL);
     if (hst_descr == NULL) {
 	pr_err("Cannot allocate memory for the host set table\n");
 	return -ENOMEM;
@@ -433,11 +434,11 @@ static int __net_init tls_net_init(struct net *net)
 static void __net_exit tls_net_exit(struct net *net)
 {
     int i;
+    struct host_set_table_descriptor **pprev, *hst_descr;
 #ifdef XT_TLS_DEBUG
     pr_info("Finalizing net %px", net);
 #endif
-    struct host_set_table_descriptor **pprev,
-	*hst_descr = find_host_set_table(net, &pprev);
+    hst_descr = find_host_set_table(net, &pprev);
     if (hst_descr == NULL) {
 	pr_err("Cannot find a host set table for the net %p\n", net);
 	return;
