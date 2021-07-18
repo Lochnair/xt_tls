@@ -31,6 +31,7 @@ static struct file_operations proc_fops = {
     .open = seq_file_open,
     .read = seq_read,
     .write = proc_write,
+    .release = seq_release,	
 };
 
 // Initialize a host set
