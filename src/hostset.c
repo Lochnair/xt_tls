@@ -26,6 +26,7 @@ static ssize_t proc_write(struct file *file, const char __user *input,
 #define HIT_COUNT_DISPL_WIDTH 12
 #define HSE_SIZE_OVERHEAD (HIT_COUNT_DISPL_WIDTH + 2)
 
+#if KERNEL_VERSION(5, 6, 0) > LINUX_VERSION_CODE
 static struct file_operations proc_fops = {
     .owner = THIS_MODULE,
     .open = seq_file_open,
@@ -33,6 +34,14 @@ static struct file_operations proc_fops = {
     .write = proc_write,
     .release = seq_release,	
 };
+#else
+static struct proc_ops proc_fops = {
+    .proc_open = seq_file_open,
+    .proc_read = seq_read,
+    .proc_write = proc_write,
+    .proc_release = seq_release,
+};
+#endif
 
 // Initialize a host set
 int hs_init(struct host_set *hs, const char *name)
