@@ -9,6 +9,7 @@
 #include <linux/proc_fs.h>
 #include <linux/uaccess.h>
 #include <linux/seq_file.h>
+#include <linux/version.h>
 #include <asm/errno.h>
 
 #include "xt_tls.h"
