@@ -325,8 +325,7 @@ static void *seq_read_start(struct seq_file *seq, loff_t *pos)
 static void *seq_read_next(struct seq_file *seq, void *v, loff_t *pos)
 {
     struct rb_node *node = rb_next(v);
-    if (node)
-	(*pos)++;
+    (*pos)++;
     return node;
 }//seq_read_next
 
