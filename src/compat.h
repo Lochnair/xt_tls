@@ -1,3 +1,6 @@
+#ifndef XT_TLS_COMPAT_H
+#define XT_TLS_COMPAT_H
+
 #include <linux/version.h>
 /*
  * glob_match wasn't added before kernel 3.17
@@ -89,4 +92,14 @@
 			}
 		}
 	}
+#endif
+
+
+/*
+ * In 5.17 PDA_DATA was renamed to pda_data
+ */
+#if KERNEL_VERSION(5, 17, 0) > LINUX_VERSION_CODE
+#define pde_data(i) PDE_DATA(i)
+#endif
+
 #endif

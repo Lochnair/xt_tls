@@ -12,6 +12,7 @@
 #include <linux/version.h>
 #include <asm/errno.h>
 
+#include "compat.h"
 #include "xt_tls.h"
 #include "hostset.h"
 
@@ -303,7 +304,7 @@ static void strrev(char *dst, const char *src, size_t max_len)
 static void *seq_read_start(struct seq_file *seq, loff_t *pos)
     __acquires(hs_lock)
 {
-    const struct host_set *hs = PDE_DATA(file_inode(seq->file));
+    const struct host_set *hs = pde_data(file_inode(seq->file));
     struct rb_node *node;
     loff_t p = *pos;
 
@@ -373,7 +374,7 @@ static ssize_t
 proc_write(struct file *file, const char __user *input, size_t size, loff_t *loff)
 {
     struct inode *inode = file_inode(file);
-    struct host_set *hs = PDE_DATA(inode);
+    struct host_set *hs = pde_data(inode);
     char buf[MAX_HOSTNAME_LEN + 2];
     int rc;
 
