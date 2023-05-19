@@ -41,10 +41,10 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 	u_int16_t tls_header_len;
 	u_int8_t handshake_protocol;
 	bool data_buf_allocated = false;
-        
+
 #define free_data_buf() \
 	if (data_buf_allocated) \
-		kfree(data);
+                kfree(data);
 
 	struct tcphdr *tcp_header = (struct tcphdr *)skb_transport_header(skb);
 	size_t tcp_header_len = tcp_header->doff * 4;
@@ -69,7 +69,7 @@ static int get_tls_hostname(const struct sk_buff *skb, char **dest)
 	data_len = (uintptr_t)tail - (uintptr_t)data;
 	// ...and check if we really have the entire packet
 	if (data_len < payload_len) {
-	        // if not - copy the missing portion from wherever it is
+               // if not - copy the missing portion from wherever it is
 #ifdef XT_TLS_DEBUG
 		printk("[xt_tls] Not all payload available right now - try to gather it\n");
 #endif
@@ -244,7 +244,7 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	char *parsed_host;
 	const struct xt_tls_info *info = par->matchinfo;
 	int result;
-	
+        
 	int pattern_type = (info->op_flags & XT_TLS_OP_HOSTSET) ?
 	    XT_TLS_OP_HOSTSET : XT_TLS_OP_HOST;
 	bool invert = (pattern_type == XT_TLS_OP_HOSTSET) ?
@@ -261,8 +261,8 @@ static bool tls_mt(const struct sk_buff *skb, struct xt_action_param *par)
 		match = glob_match(info->host_or_set_name, parsed_host);
 		break;
 	    case XT_TLS_OP_HOSTSET:
-		match = hs_lookup(&host_set_table[info->hostset_index], 
-			parsed_host, suffix_matching);
+                match = hs_lookup(&host_set_table[info->hostset_index], 
+                    parsed_host, suffix_matching);
 		break;
 	}//switch
 
@@ -296,39 +296,40 @@ static int tls_mt_check (const struct xt_mtchk_param *par)
 		pr_info("Can be used only in combination with -p tcp\n");
 		return -EINVAL;
 	}
-	
+
 	// If the rule contains --tls-hostset, try to find an existing matching
 	// hostset table entry or allocate a new one
 	if (match_info->op_flags & XT_TLS_OP_HOSTSET) {
-	    int i;
-	    bool found = false;
-	    
-	    for (i = 0; i < max_host_sets; i++) {
-		found = !hs_is_free(&host_set_table[i]) && 
-		    strcmp(host_set_table[i].name, match_info->host_or_set_name) == 0;
-		if (found)
-		    break;
-	    }//for
-	    
-	    if (found) {
-		hs_hold(&host_set_table[i]);
-	    } else {
-		int rc;
-		for (i = 0; i < max_host_sets; i++) {
-		    found = hs_is_free(&host_set_table[i]);
-		    if (found)
-			break;
+            int i;
+            bool found = false;
+
+            for (i = 0; i < max_host_sets; i++) {
+                found = !hs_is_free(&host_set_table[i]) &&
+                    strcmp(host_set_table[i].name, match_info->host_or_set_name) == 0;
+                if (found)
+                    break;
+            }//for
+    
+            if (found) {
+                hs_hold(&host_set_table[i]);
+            } else {
+                int rc;
+                for (i = 0; i < max_host_sets; i++) {
+                    found = hs_is_free(&host_set_table[i]);
+                    if (found)
+                        break;
 		}//for
 		if (!found) {
-		    pr_err("Cannot add a new hostset: the hostset table is full\n");
-		    return -ENOMEM;
+                    pr_err("Cannot add a new hostset: the hostset table is full\n");
+                    return -ENOMEM;
 		}//if
+
 		rc = hs_init(&host_set_table[i], match_info->host_or_set_name);
 		if (rc)
-		    return rc;
-	    }//if
-	    
-	    match_info->hostset_index = i;
+			return rc;
+            }//if
+
+            match_info->hostset_index = i;
 	}//if
 
 	return 0;
@@ -339,37 +340,37 @@ static void tls_mt_destroy(const struct xt_mtdtor_param *par)
 {
 	struct xt_tls_info *match_info = par->matchinfo;
 #ifdef XT_TLS_DEBUG
-	pr_info("tls_mt_destroy: match_info: op_flags=0x%X, hostset_index=%u\n", 
-		match_info->op_flags, match_info->hostset_index);
+       pr_info("tls_mt_destroy: match_info: op_flags=0x%X, hostset_index=%u\n",
+               match_info->op_flags, match_info->hostset_index);
 #endif
 	if (match_info->op_flags & XT_TLS_OP_HOSTSET) {
-	    hs_free(&host_set_table[match_info->hostset_index]);
+            hs_free(&host_set_table[match_info->hostset_index]);
 	}//if
 }//tls_mt_destroy
 
 
 static struct xt_match tls_mt_regs[] __read_mostly = {
-	{
-		.name       = "tls",
-		.revision   = 1,
-		.family     = NFPROTO_IPV4,
-		.checkentry = tls_mt_check,
-		.destroy    = tls_mt_destroy,
-		.match      = tls_mt,
-		.matchsize  = sizeof(struct xt_tls_info),
-		.me         = THIS_MODULE,
-	},
+    {
+               .name       = "tls",
+               .revision   = 1,
+               .family     = NFPROTO_IPV4,
+               .checkentry = tls_mt_check,
+               .destroy    = tls_mt_destroy,
+               .match      = tls_mt,
+               .matchsize  = sizeof(struct xt_tls_info),
+               .me         = THIS_MODULE,
+    },
 #if IS_ENABLED(CONFIG_IP6_NF_IPTABLES)
-	{
-		.name       = "tls",
-		.revision   = 1,
-		.family     = NFPROTO_IPV6,
-		.checkentry = tls_mt_check,
-		.destroy    = tls_mt_destroy,
-		.match      = tls_mt,
-		.matchsize  = sizeof(struct xt_tls_info),
-		.me         = THIS_MODULE,
-	},
+    {
+               .name       = "tls",
+               .revision   = 1,
+               .family     = NFPROTO_IPV6,
+               .checkentry = tls_mt_check,
+               .destroy    = tls_mt_destroy,
+               .match      = tls_mt,
+               .matchsize  = sizeof(struct xt_tls_info),
+               .me         = THIS_MODULE,
+    },
 #endif
 };
 
@@ -388,8 +389,8 @@ static int __net_init tls_net_init(struct net *net)
 
 static void __net_exit tls_net_exit(struct net *net)
 {
-    proc_remove(proc_fs_hostset_dir);
-    proc_remove(proc_fs_dir);
+    remove_proc_entry(PROC_FS_HOSTSET_SUBDIR, proc_fs_dir);
+    remove_proc_entry(KBUILD_MODNAME, net->proc_net);
 }//tls_net_exit
 
 
@@ -401,46 +402,46 @@ static struct pernet_operations tls_net_ops = {
 
 static int __init tls_mt_init (void)
 {
-	int i;
-	int rc = xt_register_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
-	if (rc)
-	    return rc;
-	
+       int i;
+       int rc = xt_register_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+       if (rc)
+           return rc;
+
 	rc = register_pernet_subsys(&tls_net_ops);
 	if (rc) {
-	    pr_err("Cannot register pernet subsys\n");
-	    xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
-	    unregister_pernet_subsys(&tls_net_ops);
-	    return rc;
+            pr_err("Cannot register pernet subsys\n");
+            xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+            unregister_pernet_subsys(&tls_net_ops);
+            return rc;
 	}//if
-	
+
 	host_set_table = kmalloc(sizeof (struct host_set) * max_host_sets, GFP_KERNEL);
 	if (! host_set_table) {
-	    pr_err("Cannot allocate memory for the host set table\n");
-	    xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
-	    return -ENOMEM;
+            pr_err("Cannot allocate memory for the host set table\n");
+            xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+            return -ENOMEM;
 	}//if
 #ifdef XT_TLS_DEBUG
 	pr_info("Host set table allocated (%u elements max)\n", max_host_sets);
 #endif
-	
+        
 	for (i = 0; i < max_host_sets; i++)
-	    hs_zeroize(&host_set_table[i]);
-	
+            hs_zeroize(&host_set_table[i]);
+        
 	return 0;
 }
 
 static void __exit tls_mt_exit (void)
 {
-	int i;
-	xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
-	
-	for (i = 0; i < max_host_sets; i++)
-	    hs_destroy(&host_set_table[i]);
-	kfree(host_set_table);
-	unregister_pernet_subsys(&tls_net_ops);
+       int i;
+       xt_unregister_matches(tls_mt_regs, ARRAY_SIZE(tls_mt_regs));
+
+       for (i = 0; i < max_host_sets; i++)
+           hs_destroy(&host_set_table[i]);
+       kfree(host_set_table);
+       unregister_pernet_subsys(&tls_net_ops);
 #ifdef XT_TLS_DEBUG
-	pr_info("Host set table disposed\n");
+       pr_info("Host set table disposed\n");
 #endif
 }
 

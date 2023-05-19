@@ -41,3 +41,5 @@ static inline bool hs_is_free(struct host_set *hs) { return hs->refcount == 0; }
 static inline void hs_zeroize(struct host_set *hs) { hs->refcount = 0; }
 // Lookup the host set for the specifed host name
 bool hs_lookup(struct host_set *hs, const char *hostname, bool suffix_matching);
+
+size_t find_wildcardChar(const char* hostname);
