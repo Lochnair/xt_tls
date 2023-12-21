@@ -4,6 +4,7 @@
  */
 
 #include <linux/rbtree.h>
+#include <net/net_namespace.h>
 
 #ifndef CONFIG_PROC_FS
 #error "XT_TLS requires proc filesystem support enabled in the kernel"
@@ -28,7 +29,7 @@ struct host_set {
 
 
 // Initialize a host set
-int hs_init(struct host_set *hs, const char *name);
+int hs_init(struct net *net, struct host_set *hs, const char *name);
 // Increment the usage count for the host set
 static inline void hs_hold(struct host_set *hs) { hs->refcount++; }
 // Free a host set entry (taking into account its refcount)
