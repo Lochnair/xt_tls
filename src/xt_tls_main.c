@@ -11,6 +11,7 @@
 #include <linux/inet.h>
 #include <linux/proc_fs.h>
 #include <asm/errno.h>
+#include <net/netns/generic.h>
 
 #include "compat.h"
 #include "xt_tls.h"
@@ -24,8 +25,7 @@ MODULE_PARM_DESC(max_host_sets, "host set table capacity (default 8)");
 // The table of the host sets we use
 static struct host_set *host_set_table;
 
-// The proc-fs subdirectory for hostsets
-struct proc_dir_entry *proc_fs_dir, *proc_fs_hostset_dir;
+static int xt_net_id;
 
 /*
  * Searches through skb->data and looks for a
@@ -323,7 +323,7 @@ static int tls_mt_check (const struct xt_mtchk_param *par)
 		    pr_err("Cannot add a new hostset: the hostset table is full\n");
 		    return -ENOMEM;
 		}//if
-		rc = hs_init(&host_set_table[i], match_info->host_or_set_name);
+		rc = hs_init(par->net, &host_set_table[i], match_info->host_or_set_name);
 		if (rc)
 		    return rc;
 	    }//if
@@ -373,12 +373,17 @@ static struct xt_match tls_mt_regs[] __read_mostly = {
 #endif
 };
 
+struct xt_net *tls_net(struct net *net) {
+    return net_generic(net, xt_net_id);
+}
 
 static int __net_init tls_net_init(struct net *net)
 {
-    proc_fs_dir = proc_mkdir(KBUILD_MODNAME, net->proc_net);
-    proc_fs_hostset_dir = proc_mkdir(PROC_FS_HOSTSET_SUBDIR, proc_fs_dir);
-    if (! proc_fs_hostset_dir) {
+    struct xt_net *xt = net_generic(net, xt_net_id);
+
+    xt->proc_fs_dir = proc_mkdir(KBUILD_MODNAME, net->proc_net);
+    xt->proc_fs_hostset_dir = proc_mkdir(PROC_FS_HOSTSET_SUBDIR, xt->proc_fs_dir);
+    if (! xt->proc_fs_hostset_dir) {
 	pr_err("Cannot create /proc/net/ subdirectory for this module\n");
 	return -EFAULT;
     }//if
@@ -388,14 +393,18 @@ static int __net_init tls_net_init(struct net *net)
 
 static void __net_exit tls_net_exit(struct net *net)
 {
-    proc_remove(proc_fs_hostset_dir);
-    proc_remove(proc_fs_dir);
+    struct xt_net *xt = net_generic(net, xt_net_id);
+
+    proc_remove(xt->proc_fs_hostset_dir);
+    proc_remove(xt->proc_fs_dir);
 }//tls_net_exit
 
 
 static struct pernet_operations tls_net_ops = {
     .init = tls_net_init,
     .exit = tls_net_exit,
+    .id = &xt_net_id,
+    .size = sizeof(struct xt_net),
 };
 
 
