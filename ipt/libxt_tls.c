@@ -125,7 +125,7 @@ static struct xtables_match tls_match = {
 	.x6_options	= tls_opts,
 };
 
-void _init(void)
+static __attribute__((constructor)) void xt_tls_mt_ldr(void)
 {
 	xtables_register_match(&tls_match);
 }
