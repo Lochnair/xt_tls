@@ -17,5 +17,7 @@ jobs:
         run: make -C ipt
       - name: Install
         run: sudo make install
-      - name: Test adding rule
+      - name: "Test: Add iptables rule"
         run: sudo iptables -A FORWARD -p tcp -m tls --tls-host github.com -j ACCEPT
+      - name: "Test: Show iptables rules"
+        run: sudo iptables -L -v
