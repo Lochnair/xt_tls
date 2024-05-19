@@ -17,7 +17,13 @@ jobs:
         run: make -C ipt
       - name: Install
         run: sudo make install
-      - name: "Test: Add iptables rule"
-        run: sudo iptables -A FORWARD -p tcp -m tls --tls-host github.com -j ACCEPT
+      - name: "Test: Add iptables host rule"
+        run: sudo iptables -A OUTPUT -p tcp --dport 443 -m tls --tls-host github.com -j ACCEPT
+      - name: "Test: Add iptables hostset rule"
+        run: sudo iptables -A OUTPUT -p tcp --dport 443 -m tls --tls-hostset testlist -j ACCEPT
+      - name: "Test: Add domains to hostset"
+        run: echo +github.com | sudo tee /proc/net/xt_tls/hostset/testlist
+      - name: "Test: cURL against github.com"
+        run: curl -v -o/dev/null https://github.com
       - name: "Test: Show iptables rules"
         run: sudo iptables -L -v
