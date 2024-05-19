@@ -11,3 +11,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: sudo apt install linux-headers-$(uname -r) libxtables-dev
+      - name: Build kernel module
+        run: make -C src
+      - name: Build xtables extension
+        run: make -C ipt
+      - name: Install
+        run: sudo make install
+      - name: Test adding rule
+        run: sudo iptables -A FORWARD -p tcp -m tls --tls-host github.com -j ACCEPT
