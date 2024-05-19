@@ -1,0 +1,13 @@
+name: build
+run-name: Build xt_tls
+on: [pull_request, push]
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Display kernel version
+        run: uname -a
