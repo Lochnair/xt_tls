@@ -22,8 +22,10 @@ jobs:
       - name: "Test: Add iptables hostset rule"
         run: sudo iptables -A OUTPUT -p tcp --dport 443 -m tls --tls-hostset testlist -j ACCEPT
       - name: "Test: Add domains to hostset"
-        run: echo +github.com | sudo tee /proc/net/xt_tls/hostset/testlist
-      - name: "Test: cURL against github.com"
+        run: echo +google.com | sudo tee /proc/net/xt_tls/hostset/testlist
+      - name: "Test: Retrieve github.com"
         run: curl -v -o/dev/null https://github.com
+      - name: "Test: Retrieve google.com"
+        run: curl -v -o/dev/null https://google.com
       - name: "Test: Show iptables rules"
         run: sudo iptables -L -v
