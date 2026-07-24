@@ -8,3 +8,7 @@ src/*.mod.c
 src/*.mod
 src/.tmp_versions/
 src/.cache.mk
+
+.idea/**
+nbproject/**
+vscode/**

@@ -4,6 +4,7 @@
  */
 
 #define pr_fmt(fmt) "[" KBUILD_MODNAME "]: " fmt
+#include <linux/version.h>
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/proc_fs.h>
@@ -15,6 +16,9 @@
 #include "hostset.h"
 
 static DEFINE_RWLOCK(hs_lock);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,0,0)
+#define pde_data PDE_DATA
+#endif
 
 static void hse_free(struct host_set_elem *hse);
 static void strrev(char *dst, const char *src, size_t max_len);
@@ -26,12 +30,22 @@ static ssize_t proc_write(struct file *file, const char __user *input,
 #define HIT_COUNT_DISPL_WIDTH 12
 #define HSE_SIZE_OVERHEAD (HIT_COUNT_DISPL_WIDTH + 2)
 
+#if KERNEL_VERSION(5, 10, 0) >= LINUX_VERSION_CODE
 static struct file_operations proc_fops = {
     .owner = THIS_MODULE,
     .open = seq_file_open,
     .read = seq_read,
     .write = proc_write,
 };
+#else
+static struct proc_ops proc_fops = {
+	// .owner = THIS_MODULE,
+	.proc_open = seq_file_open,
+	.proc_read = seq_read,
+	.proc_write = proc_write,
+};
+#endif
+
 
 // Initialize a host set
 int hs_init(struct host_set *hs, const char *name, struct proc_dir_entry *parent_dir)
@@ -47,8 +61,7 @@ int hs_init(struct host_set *hs, const char *name, struct proc_dir_entry *parent
     hs->hosts = RB_ROOT;
     hs->filesize = 0;
     
-    hs->proc_file = proc_create_data(hs->name, 0644, parent_dir, 
-	    &proc_fops, hs);
+    hs->proc_file = proc_create_data(hs->name, 0644, parent_dir, &proc_fops, hs);
     if (! hs->proc_file) {
 	pr_err("Cannot create a procfs file for the host set %s\n", name);
 	return -EFAULT;
@@ -295,7 +308,7 @@ static void strrev(char *dst, const char *src, size_t max_len)
 static void *seq_read_start(struct seq_file *seq, loff_t *pos)
     __acquires(hs_lock)
 {
-    const struct host_set *hs = PDE_DATA(file_inode(seq->file));
+    const struct host_set *hs =	pde_data(file_inode(seq->file));
     struct rb_node *node;
     loff_t p = *pos;
 
@@ -366,7 +379,7 @@ static ssize_t
 proc_write(struct file *file, const char __user *input, size_t size, loff_t *loff)
 {
     struct inode *inode = file_inode(file);
-    struct host_set *hs = PDE_DATA(inode);
+    struct host_set *hs = pde_data(inode);
     char buf[MAX_HOSTNAME_LEN + 2];
     int rc;
 
