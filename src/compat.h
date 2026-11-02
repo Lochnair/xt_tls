@@ -74,7 +74,7 @@
 				break;
 			case '\\':
 				d = *pat++;
-				/*FALLTHROUGH*/
+				goto literal;
 			default:	/* Literal character */
 	literal:
 				if (c == d) {
